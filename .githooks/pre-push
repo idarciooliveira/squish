@@ -1,0 +1,46 @@
+#!/bin/sh
+# Second line of defense for docs/adr/0015-commit-policy.md.
+# Re-checks every commit about to be pushed, so commits made with
+# `--no-verify`, by rebase, or on another machine without hooks still get caught.
+
+ALLOWED_NAME="idarciooliveira"
+ALLOWED_EMAIL="idarciooliveira@gmail.com"
+BLOCKED='claude|anthropic|co-authored-by|generated with|noreply@'
+
+remote="$1"
+bad=0
+
+report() {
+	echo "pre-push: $1: $2" >&2
+	bad=1
+}
+
+while read -r local_ref local_sha remote_ref remote_sha; do
+	# Branch deletion: nothing to check.
+	case "$local_sha" in *[!0]*) ;; *) continue ;; esac
+
+	case "$remote_sha" in
+	*[!0]*) range="$remote_sha..$local_sha" ;;
+	*) range="$local_sha --not --remotes=$remote" ;;
+	esac
+
+	# shellcheck disable=SC2086
+	for c in $(git rev-list $range); do
+		short=$(git rev-parse --short "$c")
+		msg=$(git log -1 --format=%B "$c" | grep -v '^[[:space:]]*$')
+		count=$(printf '%s\n' "$msg" | grep -c .)
+		[ "$count" -eq 1 ] || report "$short" "message has $count lines, expected 1"
+		printf '%s\n' "$msg" | grep -Eiq "$BLOCKED" && report "$short" "message mentions AI tooling or a co-author"
+
+		an=$(git log -1 --format=%an "$c"); ae=$(git log -1 --format=%ae "$c")
+		cn=$(git log -1 --format=%cn "$c"); ce=$(git log -1 --format=%ce "$c")
+		[ "$an" = "$ALLOWED_NAME" ] && [ "$ae" = "$ALLOWED_EMAIL" ] || report "$short" "author is '$an <$ae>'"
+		[ "$cn" = "$ALLOWED_NAME" ] && [ "$ce" = "$ALLOWED_EMAIL" ] || report "$short" "committer is '$cn <$ce>'"
+	done
+done
+
+if [ "$bad" -ne 0 ]; then
+	echo "pre-push: push rejected, see docs/adr/0015-commit-policy.md" >&2
+	exit 1
+fi
+exit 0

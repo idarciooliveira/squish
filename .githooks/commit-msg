@@ -1,0 +1,38 @@
+#!/bin/sh
+# Commit policy, see docs/adr/0015-commit-policy.md
+#   1. The message is exactly one line.
+#   2. No AI attribution: no Claude/Anthropic mentions, no Co-authored-by trailers.
+#   3. Author and committer are always the repository owner.
+
+ALLOWED_NAME="idarciooliveira"
+ALLOWED_EMAIL="idarciooliveira@gmail.com"
+BLOCKED='claude|anthropic|co-authored-by|generated with|noreply@'
+
+fail() {
+	echo "commit-msg: $1" >&2
+	echo "commit-msg: commit rejected, see docs/adr/0015-commit-policy.md" >&2
+	exit 1
+}
+
+# Ignore the diff that `git commit -v` appends, comment lines and blank lines.
+lines=$(sed '/^# -* >8 -*$/,$d' "$1" | grep -v '^#' | grep -v '^[[:space:]]*$')
+count=$(printf '%s\n' "$lines" | grep -c .)
+
+[ "$count" -eq 0 ] && fail "empty commit message"
+[ "$count" -gt 1 ] && fail "message must be a single line (found $count lines)"
+printf '%s\n' "$lines" | grep -Eiq "$BLOCKED" && fail "message mentions AI tooling or a co-author"
+
+check_ident() {
+	ident=$(git var "$1") || fail "could not read $2 identity"
+	name=$(printf '%s' "$ident" | sed 's/ <.*//')
+	email=$(printf '%s' "$ident" | sed 's/.*<\(.*\)>.*/\1/')
+	[ "$name" = "$ALLOWED_NAME" ] || fail "$2 name is '$name', expected '$ALLOWED_NAME'"
+	[ "$email" = "$ALLOWED_EMAIL" ] || fail "$2 email is '$email', expected '$ALLOWED_EMAIL'"
+}
+check_ident GIT_AUTHOR_IDENT author
+check_ident GIT_COMMITTER_IDENT committer
+
+# Write back only the line we checked. With `-F` or `-m`, git keeps "#" lines,
+# so without this they could slip into the commit.
+printf '%s\n' "$lines" > "$1"
+exit 0
