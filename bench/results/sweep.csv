@@ -1,0 +1,104 @@
+file,format,variant,setting,out_bytes,dssim,target,tinypng_bytes,met,encode_ms
+1.png,png,quantizr+oxipng,256c,28477,0.00171,0.00112,28447,false,77
+1.png,png,imagequant+oxipng,168c,28228,0.00112,0.00112,28447,true,467
+1_webp_a.png,png,quantizr+oxipng,256c,27236,0.00180,0.00125,26864,false,70
+1_webp_a.png,png,imagequant+oxipng,160c,26753,0.00123,0.00125,26864,true,404
+2.png,png,quantizr+oxipng,256c,19147,0.00026,0.00020,20243,false,68
+2.png,png,imagequant+oxipng,158c,18501,0.00020,0.00020,20243,true,285
+2_webp_a.png,png,quantizr+oxipng,256c,22717,0.00040,0.00020,25679,false,73
+2_webp_a.png,png,imagequant+oxipng,206c,25382,0.00020,0.00020,25679,true,314
+3.png,png,quantizr+oxipng,256c,46860,0.00243,0.00159,48305,false,181
+3.png,png,imagequant+oxipng,181c,47275,0.00159,0.00159,48305,true,857
+3_webp_a.png,png,quantizr+oxipng,256c,48200,0.00247,0.00165,49224,false,185
+3_webp_a.png,png,imagequant+oxipng,184c,49092,0.00165,0.00165,49224,true,897
+4.png,png,quantizr+oxipng,221c,13822,0.00020,0.00020,16099,true,142
+4.png,png,imagequant+oxipng,80c,11954,0.00020,0.00020,16099,true,283
+5.png,png,quantizr+oxipng,256c,26130,0.00062,0.00033,25643,false,76
+5.png,png,imagequant+oxipng,175c,25847,0.00033,0.00033,25643,true,428
+Captura de ecrã 2026-10-09 110328.png,png,quantizr+oxipng,256c,313243,0.00063,0.00052,283403,false,759
+Captura de ecrã 2026-10-09 110328.png,png,imagequant+oxipng,164c,259635,0.00052,0.00052,283403,true,2459
+Captura de ecrã 2026-10-12 100302.png,png,quantizr+oxipng,256c,255932,0.00050,0.00048,266028,false,660
+Captura de ecrã 2026-10-12 100302.png,png,imagequant+oxipng,150c,260751,0.00048,0.00048,266028,true,2593
+anaconda_PNG115458.png,png,quantizr+oxipng,256c,299902,0.00050,0.00042,346752,false,343
+anaconda_PNG115458.png,png,imagequant+oxipng,184c,313669,0.00042,0.00042,346752,true,1637
+cow_PNG50628.png,png,quantizr+oxipng,256c,616988,0.00127,0.00110,626022,false,1529
+cow_PNG50628.png,png,imagequant+oxipng,198c,629969,0.00110,0.00110,626022,true,5662
+cow_PNG50629.png,png,quantizr+oxipng,256c,1164521,0.00146,0.00134,1128792,false,2026
+cow_PNG50629.png,png,imagequant+oxipng,130c,1055627,0.00133,0.00134,1128792,true,7058
+gradient-gold-crown-logo-template.png,png,quantizr+oxipng,55c,78077,0.00020,0.00020,130742,true,5101
+gradient-gold-crown-logo-template.png,png,imagequant+oxipng,32c,71169,0.00020,0.00020,130742,true,3983
+idarcio-oliveira.png,png,quantizr+oxipng,256c,53839,0.00075,0.00074,59215,false,96
+idarcio-oliveira.png,png,imagequant+oxipng,199c,53358,0.00073,0.00074,59215,true,482
+image (1).jpg,jpeg,mozjpeg,q66,1904775,0.00326,0.00335,1978842,true,19591
+image (1).png,png,quantizr+oxipng,256c,1108744,0.00300,0.00246,1125858,false,2985
+image (1).png,png,imagequant+oxipng,186c,1144641,0.00245,0.00246,1125858,true,9649
+image (10).jpg,jpeg,mozjpeg,q63,619814,0.00366,0.00370,646303,true,11197
+image (11).jpg,jpeg,mozjpeg,q77,476364,0.00403,0.00413,499560,true,5689
+image (12).jpg,jpeg,mozjpeg,q77,917565,0.00482,0.00488,969325,true,10269
+image (13).jpg,jpeg,mozjpeg,q63,882467,0.00119,0.00119,928990,true,19230
+image (14).jpg,jpeg,mozjpeg,q64,535355,0.00193,0.00197,561000,true,16360
+image (15).jpg,jpeg,mozjpeg,q64,233800,0.00223,0.00224,245206,true,6536
+image (16).jpg,jpeg,mozjpeg,q61,1276351,0.00218,0.00218,1317603,true,13820
+image (17).jpg,jpeg,mozjpeg,q80,206062,0.00135,0.00148,213965,true,2571
+image (18).jpg,jpeg,mozjpeg,q77,22434,0.00105,0.00106,24914,true,212
+image (19).jpg,jpeg,mozjpeg,q66,967864,0.00461,0.00462,994580,true,17367
+image (2).jpg,jpeg,mozjpeg,q79,24503,0.00039,0.00041,23322,true,156
+image (20).jpg,jpeg,mozjpeg,q64,1135124,0.00340,0.00340,1438038,true,62549
+image (21).jpg,jpeg,mozjpeg,q74,190284,0.00162,0.00173,189948,true,1994
+image (3).jpg,jpeg,mozjpeg,q66,179871,0.00233,0.00234,181799,true,5645
+image (4).jpg,jpeg,mozjpeg,q71,1022514,0.00319,0.00334,1029583,true,11669
+image (5).jpg,jpeg,mozjpeg,q90,42085,0.00030,0.00032,43137,true,306
+image (6).jpg,jpeg,mozjpeg,q78,436484,0.00221,0.00224,466108,true,4682
+image (7).jpg,jpeg,mozjpeg,q66,1880835,0.00193,0.00199,1836759,true,29398
+image (8).jpg,jpeg,mozjpeg,q63,1086173,0.00221,0.00225,1100807,true,9220
+image (9).jpg,jpeg,mozjpeg,q66,574272,0.00219,0.00221,600943,true,22139
+kodim01.png,png,quantizr+oxipng,214c,262205,0.00040,0.00040,285804,true,822
+kodim01.png,png,imagequant+oxipng,194c,271010,0.00040,0.00040,285804,true,745
+kodim03.png,png,quantizr+oxipng,256c,142417,0.00107,0.00104,146403,false,201
+kodim03.png,png,imagequant+oxipng,192c,137449,0.00103,0.00104,146403,true,803
+kodim04.png,png,quantizr+oxipng,196c,185245,0.00093,0.00094,203557,true,736
+kodim04.png,png,imagequant+oxipng,191c,196518,0.00094,0.00094,203557,true,804
+kodim05.png,png,quantizr+oxipng,224c,241980,0.00116,0.00116,251429,true,885
+kodim05.png,png,imagequant+oxipng,147c,229514,0.00115,0.00116,251429,true,947
+kodim09.png,png,quantizr+oxipng,256c,187963,0.00062,0.00060,219075,false,162
+kodim09.png,png,imagequant+oxipng,165c,199593,0.00059,0.00060,219075,true,730
+kodim11.png,png,quantizr+oxipng,252c,208885,0.00093,0.00094,218925,true,713
+kodim11.png,png,imagequant+oxipng,146c,190147,0.00094,0.00094,218925,true,733
+kodim14.png,png,quantizr+oxipng,256c,215816,0.00101,0.00099,237307,false,159
+kodim14.png,png,imagequant+oxipng,177c,207143,0.00098,0.00099,237307,true,853
+kodim22.png,png,quantizr+oxipng,219c,221619,0.00145,0.00146,232555,true,843
+kodim22.png,png,imagequant+oxipng,164c,215440,0.00146,0.00146,232555,true,846
+logo-white.png,png,quantizr+oxipng,48c,21467,0.00020,0.00020,25784,true,883
+logo-white.png,png,imagequant+oxipng,31c,20463,0.00020,0.00020,25784,true,862
+screencapture-chatday-ai-l-logo-01-2026-10-11-22_59_34.png,png,quantizr+oxipng,256c,213109,0.00034,0.00034,199724,false,716
+screencapture-chatday-ai-l-logo-01-2026-10-11-22_59_34.png,png,imagequant+oxipng,168c,196402,0.00034,0.00034,199724,true,3120
+screencapture-chatday-ai-l-logo-01-2026-10-11-23_00_06.png,png,quantizr+oxipng,256c,145120,0.00022,0.00020,141407,false,667
+screencapture-chatday-ai-l-logo-01-2026-10-11-23_00_06.png,png,imagequant+oxipng,167c,137153,0.00020,0.00020,141407,true,3001
+screencapture-chatday-ai-l-logo-01-2026-10-11-23_00_20.png,png,quantizr+oxipng,101c,80887,0.00020,0.00020,83765,true,3131
+screencapture-chatday-ai-l-logo-01-2026-10-11-23_00_20.png,png,imagequant+oxipng,70c,80472,0.00020,0.00020,83765,true,2938
+screencapture-chatday-ai-l-logo-01-2026-10-11-23_01_28.png,png,quantizr+oxipng,124c,83468,0.00018,0.00020,79285,true,2762
+screencapture-chatday-ai-l-logo-01-2026-10-11-23_01_28.png,png,imagequant+oxipng,69c,78371,0.00020,0.00020,79285,true,2910
+screencapture-chatday-ai-l-logo-01-2026-10-11-23_01_41.png,png,quantizr+oxipng,121c,96727,0.00019,0.00020,97265,true,3017
+screencapture-chatday-ai-l-logo-01-2026-10-11-23_01_41.png,png,imagequant+oxipng,71c,90183,0.00020,0.00020,97265,true,2964
+screencapture-chatday-ai-l-logo-01-2026-10-11-23_02_01.png,png,quantizr+oxipng,114c,75733,0.00020,0.00020,71749,true,2752
+screencapture-chatday-ai-l-logo-01-2026-10-11-23_02_01.png,png,imagequant+oxipng,55c,69436,0.00020,0.00020,71749,true,2709
+sprite_0001.png,png,quantizr+oxipng,3c,6230,0.00007,0.00020,10575,true,803
+sprite_0001.png,png,imagequant+oxipng,3c,6750,0.00005,0.00020,10575,true,858
+sprite_0002.png,png,quantizr+oxipng,3c,7276,0.00008,0.00020,11515,true,800
+sprite_0002.png,png,imagequant+oxipng,3c,7889,0.00007,0.00020,11515,true,854
+sprite_0003.png,png,quantizr+oxipng,3c,8670,0.00010,0.00020,14761,true,799
+sprite_0003.png,png,imagequant+oxipng,3c,9035,0.00007,0.00020,14761,true,856
+sprite_0004.png,png,quantizr+oxipng,3c,6719,0.00007,0.00020,11736,true,797
+sprite_0004.png,png,imagequant+oxipng,3c,6955,0.00005,0.00020,11736,true,874
+sprite_0005.png,png,quantizr+oxipng,3c,7911,0.00013,0.00020,18108,true,845
+sprite_0005.png,png,imagequant+oxipng,3c,8404,0.00009,0.00020,18108,true,908
+sprite_0006.png,png,quantizr+oxipng,3c,6820,0.00018,0.00020,19919,true,841
+sprite_0006.png,png,imagequant+oxipng,4c,7355,0.00006,0.00020,19919,true,910
+sprite_0007.png,png,quantizr+oxipng,3c,4233,0.00007,0.00020,9107,true,796
+sprite_0007.png,png,imagequant+oxipng,3c,4168,0.00006,0.00020,9107,true,835
+sprite_0008.png,png,quantizr+oxipng,3c,3040,0.00003,0.00020,5018,true,786
+sprite_0008.png,png,imagequant+oxipng,2c,1917,0.00011,0.00020,5018,true,812
+sprite_0009.png,png,quantizr+oxipng,3c,8043,0.00009,0.00020,14021,true,817
+sprite_0009.png,png,imagequant+oxipng,3c,8556,0.00007,0.00020,14021,true,869
+sprite_0010.png,png,quantizr+oxipng,3c,9710,0.00014,0.00020,18779,true,806
+sprite_0010.png,png,imagequant+oxipng,3c,10186,0.00009,0.00020,18779,true,882

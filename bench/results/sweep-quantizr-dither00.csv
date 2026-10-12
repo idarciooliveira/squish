@@ -1,0 +1,42 @@
+file,format,variant,setting,out_bytes,dssim,target,tinypng_bytes,met,encode_ms
+1.png,png,quantizr+oxipng,256c,23572,0.00261,0.00112,28447,false,83
+1_webp_a.png,png,quantizr+oxipng,256c,21297,0.00284,0.00125,26864,false,76
+2.png,png,quantizr+oxipng,256c,15896,0.00046,0.00020,20243,false,74
+2_webp_a.png,png,quantizr+oxipng,256c,19544,0.00064,0.00020,25679,false,77
+3.png,png,quantizr+oxipng,256c,35441,0.00301,0.00159,48305,false,189
+3_webp_a.png,png,quantizr+oxipng,256c,35087,0.00308,0.00165,49224,false,201
+4.png,png,quantizr+oxipng,246c,13789,0.00020,0.00020,16099,true,146
+5.png,png,quantizr+oxipng,256c,23376,0.00073,0.00033,25643,false,59
+Captura de ecrã 2026-10-09 110328.png,png,quantizr+oxipng,256c,214174,0.00093,0.00052,283403,false,869
+Captura de ecrã 2026-10-12 100302.png,png,quantizr+oxipng,256c,220880,0.00064,0.00048,266028,false,824
+anaconda_PNG115458.png,png,quantizr+oxipng,256c,292821,0.00057,0.00042,346752,false,366
+cow_PNG50628.png,png,quantizr+oxipng,256c,422868,0.00205,0.00110,626022,false,1593
+cow_PNG50629.png,png,quantizr+oxipng,256c,937290,0.00184,0.00134,1128792,false,2153
+gradient-gold-crown-logo-template.png,png,quantizr+oxipng,94c,73834,0.00020,0.00020,130742,true,4372
+idarcio-oliveira.png,png,quantizr+oxipng,256c,43642,0.00105,0.00074,59215,false,162
+image (1).png,png,quantizr+oxipng,256c,675614,0.00534,0.00246,1125858,false,3452
+kodim01.png,png,quantizr+oxipng,256c,266824,0.00042,0.00040,285804,false,169
+kodim03.png,png,quantizr+oxipng,256c,125620,0.00154,0.00104,146403,false,481
+kodim04.png,png,quantizr+oxipng,256c,184555,0.00105,0.00094,203557,false,255
+kodim05.png,png,quantizr+oxipng,256c,234247,0.00138,0.00116,251429,false,262
+kodim09.png,png,quantizr+oxipng,256c,176188,0.00078,0.00060,219075,false,278
+kodim11.png,png,quantizr+oxipng,256c,199542,0.00112,0.00094,218925,false,296
+kodim14.png,png,quantizr+oxipng,256c,202552,0.00129,0.00099,237307,false,195
+kodim22.png,png,quantizr+oxipng,256c,216020,0.00166,0.00146,232555,false,199
+logo-white.png,png,quantizr+oxipng,75c,18873,0.00020,0.00020,25784,true,959
+screencapture-chatday-ai-l-logo-01-2026-10-11-22_59_34.png,png,quantizr+oxipng,256c,159015,0.00056,0.00034,199724,false,820
+screencapture-chatday-ai-l-logo-01-2026-10-11-23_00_06.png,png,quantizr+oxipng,256c,97415,0.00038,0.00020,141407,false,783
+screencapture-chatday-ai-l-logo-01-2026-10-11-23_00_20.png,png,quantizr+oxipng,206c,63751,0.00020,0.00020,83765,true,3865
+screencapture-chatday-ai-l-logo-01-2026-10-11-23_01_28.png,png,quantizr+oxipng,179c,65743,0.00019,0.00020,79285,true,3590
+screencapture-chatday-ai-l-logo-01-2026-10-11-23_01_41.png,png,quantizr+oxipng,189c,75452,0.00019,0.00020,97265,true,4389
+screencapture-chatday-ai-l-logo-01-2026-10-11-23_02_01.png,png,quantizr+oxipng,172c,56746,0.00019,0.00020,71749,true,3456
+sprite_0001.png,png,quantizr+oxipng,3c,6355,0.00007,0.00020,10575,true,1345
+sprite_0002.png,png,quantizr+oxipng,3c,7355,0.00008,0.00020,11515,true,1368
+sprite_0003.png,png,quantizr+oxipng,3c,8692,0.00010,0.00020,14761,true,1202
+sprite_0004.png,png,quantizr+oxipng,3c,6774,0.00008,0.00020,11736,true,1126
+sprite_0005.png,png,quantizr+oxipng,3c,7821,0.00014,0.00020,18108,true,1238
+sprite_0006.png,png,quantizr+oxipng,3c,6161,0.00020,0.00020,19919,true,1207
+sprite_0007.png,png,quantizr+oxipng,3c,3822,0.00008,0.00020,9107,true,1027
+sprite_0008.png,png,quantizr+oxipng,3c,2918,0.00004,0.00020,5018,true,989
+sprite_0009.png,png,quantizr+oxipng,3c,7911,0.00010,0.00020,14021,true,1099
+sprite_0010.png,png,quantizr+oxipng,3c,9573,0.00016,0.00020,18779,true,1129
