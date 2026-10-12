@@ -3,7 +3,7 @@
 
 use std::io::Cursor;
 
-use oxipng::{IndexSet, StripChunks, indexset};
+use oxipng::StripChunks;
 
 use super::Encoded;
 use crate::Report;
@@ -120,34 +120,79 @@ pub(crate) fn decode_rgba(bytes: &[u8], max_pixels: u64) -> Result<(Vec<u8>, u32
     Ok((raw.rgba, raw.width, raw.height))
 }
 
-/// Only the lossless steps: oxipng on the original, with the policy's chunks kept.
-fn lossless(bytes: &[u8], options: &Options) -> Result<Encoded, Error> {
-    let strip = match options.metadata {
+/// What oxipng keeps from a PNG that carries `original`'s chunks under `policy`. Both
+/// paths use it, so oxipng's color-type reductions see the same chunks either way.
+fn strip_for(original: &[u8], policy: MetaPolicy) -> StripChunks {
+    match policy {
         MetaPolicy::StripAll => StripChunks::All,
         MetaPolicy::KeepAll => StripChunks::None,
-        MetaPolicy::StripKeepIcc => {
-            let keep: IndexSet<[u8; 4]> = indexset! { *b"iCCP" };
-            StripChunks::Keep(keep)
-        }
-    };
+        MetaPolicy::StripKeepIcc => StripChunks::Keep(metadata::png_color_kinds(original).into_iter().collect()),
+    }
+}
+
+/// Only the lossless steps: oxipng on the original, with the policy's chunks kept.
+fn lossless(bytes: &[u8], options: &Options) -> Result<Encoded, Error> {
+    let strip = strip_for(bytes, options.metadata);
     Ok(Encoded { bytes: optimize(bytes, options.effort, strip)?, report: Report::default() })
 }
 
 pub(crate) fn compress(bytes: &[u8], options: &Options) -> Result<Encoded, Error> {
-    if options.quality == Quality::Lossless {
+    // An 8-bit palette can't hold PQ or HLG levels, and the cICP tag would stay on the
+    // banded result, so HDR files only get the lossless steps.
+    if options.quality == Quality::Lossless || metadata::png_is_hdr(bytes) {
         return lossless(bytes, options);
     }
     let Some(quantizer) = quant::default_quantizer() else {
         return lossless(bytes, options);
     };
     match lossy(bytes, options, quantizer) {
+        // `lossy` has dropped its pixel buffers by now, so the second oxipng pass on the
+        // original doesn't stack on top of them.
+        Ok((encoded, true)) => match lossless(bytes, options) {
+            Ok(exact) if exact.bytes.len() <= encoded.bytes.len() => {
+                // Every pixel survives, which fs2 scores as 100.
+                let report = Report {
+                    score: Some(100.0),
+                    target: encoded.report.target,
+                    probes: encoded.report.probes,
+                    setting: None,
+                };
+                Ok(Encoded { bytes: exact.bytes, report })
+            }
+            _ => Ok(encoded),
+        },
+        Ok((encoded, false)) => Ok(encoded),
         // PRD 4.1 step 5: when quantizing fails, the original goes through losslessly.
         Err(Error::Encode(_)) => lossless(bytes, options),
-        other => other,
+        Err(e) => Err(e),
     }
 }
 
-fn lossy(bytes: &[u8], options: &Options, quantizer: &dyn Quantizer) -> Result<Encoded, Error> {
+/// Size of `raw` as a PNG from the `png` crate at its middle level, a stand-in for what
+/// the lossless steps could reach that doesn't depend on how the input was compressed.
+/// The fast level overshoots smooth images up to 4x, which hides the case it's meant for.
+fn quick_lossless_size(raw: &Raw) -> Option<usize> {
+    let opaque = raw.rgba.chunks_exact(4).all(|p| p[3] == 255);
+    let rgb: Vec<u8>;
+    let (color, pixels) = if opaque {
+        rgb = raw.rgba.chunks_exact(4).flat_map(|p| [p[0], p[1], p[2]]).collect();
+        (::png::ColorType::Rgb, &rgb[..])
+    } else {
+        (::png::ColorType::Rgba, &raw.rgba[..])
+    };
+    let mut out = Vec::new();
+    let mut encoder = ::png::Encoder::new(&mut out, raw.width, raw.height);
+    encoder.set_color(color);
+    encoder.set_compression(::png::Compression::Balanced);
+    encoder.set_filter(::png::Filter::Adaptive);
+    let mut writer = encoder.write_header().ok()?;
+    writer.write_image_data(pixels).ok()?;
+    writer.finish().ok()?;
+    Some(out.len())
+}
+
+/// The quantized file, and whether the lossless steps on the original are worth a try.
+fn lossy(bytes: &[u8], options: &Options, quantizer: &dyn Quantizer) -> Result<(Encoded, bool), Error> {
     let raw = decode(bytes, options.max_pixels)?;
     let quantize = |colors: u16| -> Result<Quantized, Error> {
         quantizer
@@ -196,10 +241,25 @@ fn lossy(bytes: &[u8], options: &Options, quantizer: &dyn Quantizer) -> Result<E
         (outcome.best.value, report)
     };
 
+    // Fast and fixed-quality runs never score, so they count as possible misses.
+    let missed = report.score.zip(report.target).is_none_or(|(score, target)| score < target);
     let indexed = encode_indexed(raw.width, raw.height, &quantized)?;
-    let optimized = optimize(&indexed, options.effort, StripChunks::All)?;
+    drop(quantized);
+    // The chunks go in before oxipng, so it won't reduce to a color type they don't fit.
     let kept = metadata::png_chunks_to_keep(bytes, options.metadata);
-    Ok(Encoded { bytes: metadata::png_insert_after_ihdr(optimized, &kept), report })
+    let indexed = metadata::png_insert_after_ihdr(indexed, &kept);
+    let bytes_out = optimize(&indexed, options.effort, strip_for(bytes, options.metadata))?;
+
+    // The palette fell short and barely shrank the file: dithering is fighting the image,
+    // as on smooth gradients, and the exact pixels may come out smaller. "Barely" is
+    // measured against the input and against a quick lossless encode, so a poorly
+    // compressed input doesn't hide the case. On bench/ every miss lands at 20% to 49%
+    // of both, where lossless never wins, and the extra oxipng pass would cost up to
+    // 1.5x a plain encode. The quick encode costs at most 0.45 s there.
+    let try_lossless = missed
+        && (bytes_out.len() * 2 > bytes.len()
+            || quick_lossless_size(&raw).is_some_and(|quick| bytes_out.len() * 2 > quick));
+    Ok((Encoded { bytes: bytes_out, report }, try_lossless))
 }
 
 #[cfg(test)]

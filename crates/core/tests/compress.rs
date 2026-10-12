@@ -226,6 +226,99 @@ fn png_icc_follows_the_policy() {
     }
 }
 
+/// An RGB PNG of `pixels`, built with the `png` crate.
+fn rgb_png(width: u32, height: u32, pixels: &[u8], setup: impl FnOnce(&mut png::Encoder<&mut Vec<u8>>)) -> Vec<u8> {
+    let mut out = Vec::new();
+    {
+        let mut encoder = png::Encoder::new(&mut out, width, height);
+        encoder.set_color(png::ColorType::Rgb);
+        setup(&mut encoder);
+        let mut writer = encoder.write_header().unwrap();
+        writer.write_image_data(pixels).unwrap();
+    }
+    out
+}
+
+/// The first `kind` chunk of `png`, with its length and CRC.
+fn raw_chunk<'a>(png: &'a [u8], kind: &[u8; 4]) -> &'a [u8] {
+    let at = png.windows(4).position(|w| w == kind).expect("chunk present") - 4;
+    let len = u32::from_be_bytes(png[at..at + 4].try_into().unwrap()) as usize;
+    &png[at..at + 12 + len]
+}
+
+/// IHDR color type of a PNG.
+fn color_type(png: &[u8]) -> u8 {
+    png[25]
+}
+
+#[test]
+fn png_color_chunks_survive_the_default_policy() {
+    // gAMA 1/1.8, the color space of a PNG without an ICC profile.
+    let photo = decode(&fixture("photo-rgb.png"));
+    let rgb: Vec<u8> = photo.pixels.chunks(4).flat_map(|p| [p[0], p[1], p[2]]).collect();
+    let input = rgb_png(photo.width, photo.height, &rgb, |e| e.set_source_gamma(png::ScaledFloat::new(1.0 / 1.8)));
+    for q in [Quality::Auto, Quality::Lossless] {
+        let o = Options { quality: q, ..Options::default() };
+        assert!(contains(&compress(&input, &o).unwrap().bytes, b"gAMA"), "{q:?}");
+    }
+    let strip = Options { metadata: MetaPolicy::StripAll, ..Options::default() };
+    assert!(!contains(&compress(&input, &strip).unwrap().bytes, b"gAMA"));
+}
+
+#[test]
+fn png_icc_profile_stays_on_a_color_image() {
+    // Gray content stored as RGB with an RGB profile: reducing the output to grayscale
+    // would leave a profile that doesn't fit its color type.
+    let gray = decode(&fixture("photo-gray.png"));
+    let rgb: Vec<u8> = gray.pixels.chunks(4).flat_map(|p| [p[0], p[1], p[2]]).collect();
+    let plain = rgb_png(gray.width, gray.height, &rgb, |_| {});
+    let with_icc = fixture("photo-icc.png");
+    let input = [&plain[..33], raw_chunk(&with_icc, b"iCCP"), &plain[33..]].concat();
+    for q in [Quality::Auto, Quality::Lossless] {
+        let out = compress(&input, &options(q, Effort::Default)).unwrap();
+        assert!(contains(&out.bytes, b"iCCP"), "{q:?}");
+        assert!(matches!(color_type(&out.bytes), 2 | 3 | 6), "{q:?} gave color type {}", color_type(&out.bytes));
+    }
+}
+
+/// A smooth pattern with thousands of colors: dithering it to 256 scores badly and
+/// compresses worse than the exact pixels.
+fn gradient(setup: impl FnOnce(&mut png::Encoder<&mut Vec<u8>>)) -> Vec<u8> {
+    let (w, h) = (300u32, 200u32);
+    let rgb: Vec<u8> = (0..h).flat_map(|y| (0..w).flat_map(move |x| [x as u8, (y * 2) as u8, (x * y) as u8])).collect();
+    rgb_png(w, h, &rgb, setup)
+}
+
+#[test]
+fn png_that_misses_at_256_colors_takes_lossless_when_smaller() {
+    let well_compressed = gradient(|e| {
+        e.set_compression(png::Compression::High);
+        e.set_filter(png::Filter::Adaptive);
+    });
+    let poorly_compressed = gradient(|e| {
+        e.set_compression(png::Compression::NoCompression);
+        e.set_filter(png::Filter::NoFilter);
+    });
+    let settings = [
+        options(Quality::Auto, Effort::Default),
+        options(Quality::Auto, Effort::Fast),
+        options(Quality::Fixed(100), Effort::Default),
+    ];
+    for input in [&well_compressed, &poorly_compressed] {
+        for o in &settings {
+            let out = compress(input, o).unwrap();
+            let label = format!("{} bytes in, {:?} {:?}", input.len(), o.quality, o.effort);
+            assert!(!out.kept_original, "{label}");
+            assert_eq!(
+                decode(&out.bytes).pixels,
+                decode(input).pixels,
+                "{label}: lossless output must keep every pixel"
+            );
+            assert_eq!((out.report.setting, out.report.score), (None, Some(100.0)), "{label}: {:?}", out.report);
+        }
+    }
+}
+
 #[test]
 fn animated_png_is_reported_not_touched() {
     let err = compress(&fixture("animated.png"), &Options::default()).unwrap_err();

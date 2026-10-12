@@ -5,7 +5,7 @@
 | Owner | Idarcio Oliveira (@idarciooliveira) |
 | Status | Phase 0 done. Phase 1 next. |
 | Last updated | 2026-10-12 |
-| Decisions | [`docs/adr/`](docs/adr/README.md) (ADR-0001 to ADR-0026) |
+| Decisions | [`docs/adr/`](docs/adr/README.md) (ADR-0001 to ADR-0027) |
 
 ## 1. Summary
 
@@ -58,7 +58,7 @@ Both use the same core library, so they produce identical results.
 1. Detect the format from the magic bytes. Skip APNG.
 2. Check dimensions from the header against the pixel limit.
 3. Decode to RGBA8.
-4. Quantize through the `Quantizer` trait (quantizr, [ADR-0022](docs/adr/0022-quantizr-as-the-png-quantizer.md)) with Floyd-Steinberg dithering. Search the palette size per file for the smallest one that scores fs2 ≥ 90 on a copy of about 1 MP ([ADR-0026](docs/adr/0026-fast-ssim2-as-the-quality-metric.md)). If 256 colors misses the target, keep 256.
+4. Quantize through the `Quantizer` trait (quantizr, [ADR-0022](docs/adr/0022-quantizr-as-the-png-quantizer.md)) with Floyd-Steinberg dithering. Search the palette size per file for the smallest one that scores fs2 ≥ 90 on a copy of about 1 MP ([ADR-0026](docs/adr/0026-fast-ssim2-as-the-quality-metric.md)). If 256 colors misses the target, keep 256. If the result missed or wasn't scored, and it's more than half the size of the input or of a quick lossless encode, run step 7 on the original too and keep the smaller. HDR files (PQ or HLG in `cICP`) skip to step 7 ([ADR-0027](docs/adr/0027-png-color-chunks-and-lossless-fallback.md)).
 5. If quantizing fails, skip to step 7 with the original.
 6. Encode an indexed PNG with the `png` crate.
 7. Optimize with `oxipng::optimize_from_memory` at the preset for the chosen effort.

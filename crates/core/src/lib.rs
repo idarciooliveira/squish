@@ -23,7 +23,8 @@ pub use quant::{Quantized, Quantizer};
 pub struct Report {
     /// JPEG quality, or the number of palette colors. `None` for lossless runs.
     pub setting: Option<u32>,
-    /// fast-ssim2 score of the output at about 1 MP (ADR-0026). `None` when nothing was scored.
+    /// fast-ssim2 score of the output at about 1 MP (ADR-0026). `None` when nothing was scored,
+    /// 100 when the PNG lossless fallback won (ADR-0027).
     pub score: Option<f64>,
     /// The target the search aimed for. A score below it means the best setting missed.
     pub target: Option<f64>,

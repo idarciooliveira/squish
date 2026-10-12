@@ -1,4 +1,4 @@
-//! Metadata handling (ADR-0010): ICC profile and orientation survive, the rest goes.
+//! Metadata handling (ADR-0010): the color profile and orientation survive, the rest goes.
 //!
 //! This reads JPEG segments and PNG chunks directly. The formats are simple enough that
 //! a parser here is shorter than a dependency, and it never touches pixel data.
@@ -287,12 +287,35 @@ pub(crate) fn png_chunks(bytes: &[u8]) -> Vec<PngChunk<'_>> {
     chunks
 }
 
+/// PNG chunks that say how to interpret the pixel values. `strip-keep-icc` keeps them: a
+/// PNG without `iCCP` may still carry its color space in `gAMA` and `cHRM`, or in `cICP`,
+/// which `mDCV` and `cLLI` complete for HDR.
+pub(crate) const PNG_COLOR_CHUNKS: [[u8; 4]; 7] =
+    [*b"iCCP", *b"sRGB", *b"gAMA", *b"cHRM", *b"cICP", *b"mDCV", *b"cLLI"];
+
+/// Color chunk types that `strip-keep-icc` keeps from `original`. A file shouldn't carry
+/// both `iCCP` and `sRGB`, and PNG 3rd edition ranks `iCCP` higher, so `sRGB` goes then.
+/// Leaving `sRGB` out of oxipng's keep set also stops it from rewriting the profile.
+pub(crate) fn png_color_kinds(original: &[u8]) -> Vec<[u8; 4]> {
+    let present: Vec<[u8; 4]> = png_chunks(original).iter().map(|c| c.kind).collect();
+    let has_icc = present.contains(b"iCCP");
+    PNG_COLOR_CHUNKS.into_iter().filter(|k| present.contains(k) && !(has_icc && k == b"sRGB")).collect()
+}
+
+/// True when `cICP` tags the PNG with an HDR transfer function, PQ (16) or HLG (18).
+pub(crate) fn png_is_hdr(original: &[u8]) -> bool {
+    png_chunks(original).iter().any(|c| &c.kind == b"cICP" && matches!(c.raw.get(9), Some(16 | 18)))
+}
+
 /// Ancillary chunks of the original that the policy keeps, as raw bytes.
 pub(crate) fn png_chunks_to_keep(original: &[u8], policy: MetaPolicy) -> Vec<&[u8]> {
     let chunks = png_chunks(original);
     match policy {
         MetaPolicy::StripAll => vec![],
-        MetaPolicy::StripKeepIcc => chunks.iter().filter(|c| &c.kind == b"iCCP").map(|c| c.raw).collect(),
+        MetaPolicy::StripKeepIcc => {
+            let kinds = png_color_kinds(original);
+            chunks.iter().filter(|c| kinds.contains(&c.kind)).map(|c| c.raw).collect()
+        }
         MetaPolicy::KeepAll => chunks
             .iter()
             .filter(|c| {
@@ -499,6 +522,8 @@ mod tests {
     fn png_policy_selects_chunks() {
         let file = png(&[
             png_chunk(b"iCCP", b"icc\0\0zz"),
+            png_chunk(b"sRGB", &[0]),
+            png_chunk(b"gAMA", &[0, 0, 0xB1, 0x8F]),
             png_chunk(b"tEXt", b"Comment\0hi"),
             png_chunk(b"tRNS", &[0]),
             png_chunk(b"pHYs", &[0; 9]),
@@ -508,8 +533,23 @@ mod tests {
             png_chunks_to_keep(&file, policy).iter().map(|raw| [raw[4], raw[5], raw[6], raw[7]]).collect()
         };
         assert!(kinds(MetaPolicy::StripAll).is_empty());
-        assert_eq!(kinds(MetaPolicy::StripKeepIcc), [*b"iCCP"]);
-        assert_eq!(kinds(MetaPolicy::KeepAll), [*b"iCCP", *b"tEXt", *b"pHYs"]);
+        assert_eq!(kinds(MetaPolicy::StripKeepIcc), [*b"iCCP", *b"gAMA"]);
+        assert_eq!(kinds(MetaPolicy::KeepAll), [*b"iCCP", *b"sRGB", *b"gAMA", *b"tEXt", *b"pHYs"]);
+    }
+
+    #[test]
+    fn png_srgb_is_kept_only_without_an_icc_profile() {
+        let srgb = png(&[png_chunk(b"sRGB", &[0]), png_chunk(b"gAMA", &[0, 0, 0xB1, 0x8F])]);
+        assert_eq!(png_color_kinds(&srgb), [*b"sRGB", *b"gAMA"]);
+        let both = png(&[png_chunk(b"iCCP", b"icc\0\0zz"), png_chunk(b"sRGB", &[0])]);
+        assert_eq!(png_color_kinds(&both), [*b"iCCP"]);
+    }
+
+    #[test]
+    fn png_hdr_is_read_from_the_cicp_transfer_function() {
+        let cicp = |transfer| png(&[png_chunk(b"cICP", &[9, transfer, 0, 1])]);
+        assert!(png_is_hdr(&cicp(16)) && png_is_hdr(&cicp(18)));
+        assert!(!png_is_hdr(&cicp(13)) && !png_is_hdr(&png(&[])));
     }
 
     #[test]
