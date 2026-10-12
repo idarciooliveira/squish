@@ -1,6 +1,7 @@
 //! Phase 0 spike: candidate pipelines over bench/images/.
 //!
-//! PNG: quantette+oxipng, imagequant+oxipng, oxipng-only.
+//! PNG: quantette+oxipng, imagequant+oxipng, oxipng-only, plus the permissive RGBA
+//! quantizers quantizr, exoquant (k-means) and NeuQuant (color_quant), each + oxipng.
 //! JPEG: mozjpeg at quality 75/80/85, progressive.
 //! TinyPNG's output for the same file, when present, is scored as the `tinypng` variant.
 //! Every candidate is decoded again and compared to the original with dssim.
@@ -74,6 +75,9 @@ fn main() -> Res<()> {
                 cands.push(png_quantette_oxipng(&rgb, w, h));
             }
             cands.push(png_imagequant_oxipng(&rgba, w, h));
+            cands.push(png_quantizr_oxipng(&rgba, w, h));
+            cands.push(png_exoquant_oxipng(&rgba, w, h));
+            cands.push(png_neuquant_oxipng(&rgba, w, h));
         } else if fmt == "jpeg" {
             for q in [75u8, 80, 85] {
                 cands.push(jpeg_mozjpeg(&rgb, w, h, q));
@@ -288,6 +292,68 @@ fn png_imagequant_oxipng(rgba: &image::RgbaImage, w: u32, h: u32) -> Candidate {
         },
         Err(e) => Candidate { variant: "imagequant+oxipng", bytes: png_bytes, ms: t.elapsed().as_millis(), note: format!("oxipng failed, raw indexed kept: {e}") },
     }
+}
+
+/// Encodes an RGBA palette + indices as an indexed PNG, then runs oxipng.
+fn indexed_rgba_oxipng(
+    variant: &'static str,
+    t: Instant,
+    w: u32,
+    h: u32,
+    pal: &[[u8; 4]],
+    idx: &[u8],
+) -> Candidate {
+    let prgb: Vec<[u8; 3]> = pal.iter().map(|c| [c[0], c[1], c[2]]).collect();
+    let pa: Vec<u8> = pal.iter().map(|c| c[3]).collect();
+    let png_bytes = match encode_indexed_png(w, h, &prgb, Some(&pa), idx) {
+        Ok(b) => b,
+        Err(e) => return Candidate { variant, bytes: vec![], ms: t.elapsed().as_millis(), note: format!("png encode: {e}") },
+    };
+    let note = format!("{} colors", pal.len());
+    match oxipng_preset2(&png_bytes) {
+        Ok(b) => Candidate { variant, bytes: b, ms: t.elapsed().as_millis(), note },
+        Err(e) => Candidate { variant, bytes: png_bytes, ms: t.elapsed().as_millis(), note: format!("oxipng failed, raw indexed kept: {e}") },
+    }
+}
+
+fn png_quantizr_oxipng(rgba: &image::RgbaImage, w: u32, h: u32) -> Candidate {
+    let variant = "quantizr+oxipng";
+    let t = Instant::now();
+    let fail = |e: String| Candidate { variant, bytes: vec![], ms: t.elapsed().as_millis(), note: e };
+    let img = match quantizr::Image::new(rgba.as_raw(), w as usize, h as usize) {
+        Ok(i) => i,
+        Err(e) => return fail(format!("image: {e:?}")),
+    };
+    let mut opts = quantizr::Options::default();
+    if let Err(e) = opts.set_max_colors(256) {
+        return fail(format!("max_colors: {e:?}"));
+    }
+    let mut res = quantizr::QuantizeResult::quantize(&img, &opts);
+    let _ = res.set_dithering_level(1.0);
+    let mut idx = vec![0u8; (w * h) as usize];
+    if let Err(e) = res.remap_image(&img, &mut idx) {
+        return fail(format!("remap: {e:?}"));
+    }
+    let p = res.get_palette();
+    let pal: Vec<[u8; 4]> = p.entries[..p.count as usize].iter().map(|c| [c.r, c.g, c.b, c.a]).collect();
+    indexed_rgba_oxipng(variant, t, w, h, &pal, &idx)
+}
+
+fn png_exoquant_oxipng(rgba: &image::RgbaImage, w: u32, h: u32) -> Candidate {
+    use exoquant::{ditherer, optimizer, Color};
+    let t = Instant::now();
+    let px: Vec<Color> = rgba.pixels().map(|p| Color::new(p[0], p[1], p[2], p[3])).collect();
+    let (pal, idx) = exoquant::convert_to_indexed(&px, w as usize, 256, &optimizer::KMeans, &ditherer::FloydSteinberg::new());
+    let pal: Vec<[u8; 4]> = pal.iter().map(|c| [c.r, c.g, c.b, c.a]).collect();
+    indexed_rgba_oxipng("exoquant+oxipng", t, w, h, &pal, &idx)
+}
+
+fn png_neuquant_oxipng(rgba: &image::RgbaImage, w: u32, h: u32) -> Candidate {
+    let t = Instant::now();
+    let nq = color_quant::NeuQuant::new(10, 256, rgba.as_raw());
+    let idx: Vec<u8> = rgba.as_raw().chunks_exact(4).map(|p| nq.index_of(p) as u8).collect();
+    let pal: Vec<[u8; 4]> = nq.color_map_rgba().chunks_exact(4).map(|c| [c[0], c[1], c[2], c[3]]).collect();
+    indexed_rgba_oxipng("neuquant+oxipng", t, w, h, &pal, &idx)
 }
 
 fn jpeg_mozjpeg(rgb: &image::RgbImage, w: u32, h: u32, q: u8) -> Candidate {

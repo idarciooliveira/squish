@@ -16,6 +16,9 @@ imagequant = "4.4"
 mozjpeg = "0.10"
 dssim = "3.5"
 rgb = "0.8"
+quantizr = "1.4.3"
+exoquant = "0.2.0"
+color_quant = "2.0.0"
 
 [profile.dev]
 opt-level = 2
