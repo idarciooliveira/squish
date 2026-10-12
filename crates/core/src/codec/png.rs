@@ -114,6 +114,12 @@ fn expand(q: &Quantized) -> Vec<u8> {
     q.indices.iter().flat_map(|&i| q.palette[usize::from(i)]).collect()
 }
 
+/// Decodes to RGBA8 for scoring.
+pub(crate) fn decode_rgba(bytes: &[u8], max_pixels: u64) -> Result<(Vec<u8>, u32, u32), Error> {
+    let raw = decode(bytes, max_pixels)?;
+    Ok((raw.rgba, raw.width, raw.height))
+}
+
 /// Only the lossless steps: oxipng on the original, with the policy's chunks kept.
 fn lossless(bytes: &[u8], options: &Options) -> Result<Encoded, Error> {
     let strip = match options.metadata {
@@ -165,8 +171,18 @@ fn lossy(bytes: &[u8], options: &Options, quantizer: &dyn Quantizer) -> Result<E
         let top = sizes.len() as i32 - 1;
         // Most photos miss the target even at 256 colors (ADR-0022), so the top goes first:
         // a miss there ends the search after one probe.
-        let params =
-            Params { lo: 0, hi: top, start: top, target: TARGET, max_probes: max_probes(options.effort), slope: None };
+        let target = options.target.unwrap_or(TARGET);
+        let params = Params {
+            lo: 0,
+            hi: top,
+            start: top,
+            target,
+            max_probes: max_probes(options.effort),
+            slope: None,
+            stop_within: 0.0,
+            near_miss: 0.0,
+            probe_top_on_miss: true,
+        };
         let outcome = search::find_lowest(&params, |i| {
             let q = quantize(sizes[i as usize])?;
             Ok((reference.score(&expand(&q))?, q))
@@ -174,7 +190,7 @@ fn lossy(bytes: &[u8], options: &Options, quantizer: &dyn Quantizer) -> Result<E
         let report = Report {
             setting: Some(outcome.best.value.palette.len() as u32),
             score: Some(outcome.best.score),
-            target: Some(TARGET),
+            target: Some(target),
             probes: outcome.probes as u32,
         };
         (outcome.best.value, report)

@@ -60,3 +60,19 @@ pub fn compress(bytes: &[u8], options: &Options) -> Result<Output, Error> {
     let (out, kept_original) = guard::apply(bytes, encoded.bytes);
     Ok(Output { bytes: out, format: info.format, original_size: bytes.len(), kept_original, report: encoded.report })
 }
+
+/// Scores `candidate` against `original` with the metric the search uses (ADR-0026).
+///
+/// Both must be PNG or JPEG files of the same size. 100 means identical.
+pub fn score(original: &[u8], candidate: &[u8]) -> Result<f64, Error> {
+    let decode = |bytes: &[u8]| {
+        let format = detect(bytes).ok_or(Error::Unsupported(None))?;
+        codec::decode_rgba(format, bytes, u64::MAX / 8)
+    };
+    let (reference, width, height) = decode(original)?;
+    let (pixels, w, h) = decode(candidate)?;
+    if (width, height) != (w, h) {
+        return Err(Error::Decode(format!("candidate is {w}x{h}, original is {width}x{height}")));
+    }
+    metric::Reference::new(&reference, width, height, metric::Layout::Rgba)?.score(&pixels)
+}

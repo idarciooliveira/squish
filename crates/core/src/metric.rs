@@ -29,7 +29,7 @@ impl Layout {
 }
 
 /// Integer downscale factor that brings an image to at most about 1 MP.
-fn factor_for(width: u32, height: u32) -> usize {
+pub(crate) fn factor_for(width: u32, height: u32) -> usize {
     let megapixels = f64::from(width) * f64::from(height) / SCORE_PIXELS;
     (megapixels.sqrt().ceil() as usize).max(1)
 }

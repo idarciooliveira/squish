@@ -21,3 +21,12 @@ pub(crate) fn compress(format: Format, bytes: &[u8], options: &Options) -> Resul
         Format::WebP | Format::Avif => Err(Error::Unsupported(Some(format))),
     }
 }
+
+/// Decodes either supported format to RGBA8, with its width and height.
+pub(crate) fn decode_rgba(format: Format, bytes: &[u8], max_pixels: u64) -> Result<(Vec<u8>, u32, u32), Error> {
+    match format {
+        Format::Png => png::decode_rgba(bytes, max_pixels),
+        Format::Jpeg => jpeg::decode_rgba(bytes),
+        Format::WebP | Format::Avif => Err(Error::Unsupported(Some(format))),
+    }
+}

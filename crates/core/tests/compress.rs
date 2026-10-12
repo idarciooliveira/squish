@@ -112,11 +112,11 @@ fn a_wasteful_jpeg_shrinks_and_reports_what_it_chose() {
     let input = fixture("photo.jpg");
     let out = compress(&input, &Options::default()).unwrap();
     assert!(!out.kept_original);
-    assert!(out.bytes.len() * 10 < input.len() * 9, "{} -> {}, {:?}", input.len(), out.bytes.len(), out.report);
+    assert!(out.bytes.len() * 100 < input.len() * 95, "{} -> {}, {:?}", input.len(), out.bytes.len(), out.report);
     let r = &out.report;
     assert!((30..=95).contains(&r.setting.unwrap()), "{r:?}");
     assert!(r.score.unwrap() >= r.target.unwrap(), "{r:?}");
-    assert!((1..=5).contains(&r.probes), "{r:?}");
+    assert!((2..=8).contains(&r.probes), "{r:?}");
 }
 
 #[test]

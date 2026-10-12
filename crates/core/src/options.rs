@@ -39,12 +39,16 @@ pub enum MetaPolicy {
     KeepAll,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Options {
     pub quality: Quality,
     pub effort: Effort,
     pub metadata: MetaPolicy,
     pub max_pixels: u64,
+    /// Replaces the format's built-in fast-ssim2 target. For calibration runs in `bench/`.
+    /// Not reachable from the CLI or the API.
+    #[doc(hidden)]
+    pub target: Option<f64>,
 }
 
 impl Default for Options {
@@ -54,6 +58,7 @@ impl Default for Options {
             effort: Effort::default(),
             metadata: MetaPolicy::default(),
             max_pixels: DEFAULT_MAX_PIXELS,
+            target: None,
         }
     }
 }
