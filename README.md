@@ -4,16 +4,27 @@ A fast, local image compressor in the spirit of [TinyPNG](https://tinypng.com). 
 
 It's written in Rust and ships as a single binary with no runtime dependencies.
 
-> **Status:** planning. No code yet. Read the [PRD](prd.md) for the full plan and [`docs/adr/`](docs/adr/README.md) for the decisions behind it.
+> **Status:** the CLI compresses PNG and JPEG. WebP, `--zip` and the web UI are next. Read the [PRD](prd.md) for the full plan and [`docs/adr/`](docs/adr/README.md) for the decisions behind it.
 
-## Planned usage
+## Usage
 
 ```sh
+cargo build --release                # binary at target/release/squish
+
 squish photo.jpg                     # writes photo.min.jpg next to it
-squish ./images -r -o ./out          # a whole folder, recursively
+squish ./images -r -o ./out          # a whole folder, recursively, mirrored into ./out
+squish ./images --in-place --yes     # replace the originals
+squish - < in.png > out.png          # stdin to stdout
+```
+
+Coming later:
+
+```sh
 squish ./images --zip squish.zip     # everything into one zip
 squish serve                         # web UI on http://127.0.0.1:8080
 ```
+
+`squish --help` lists every flag. [ADR-0019](docs/adr/0019-cli-design.md) has the rules for which files a folder walk picks up, where outputs go and what the exit codes mean.
 
 ## Contributing
 
