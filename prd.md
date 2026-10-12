@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | Owner | Idarcio Oliveira (@idarciooliveira) |
-| Status | Phase 0 done. Phase 1 next. |
+| Status | Phase 1 done. Phase 2 next. |
 | Last updated | 2026-10-12 |
 | Decisions | [`docs/adr/`](docs/adr/README.md) (ADR-0001 to ADR-0027) |
 
@@ -246,6 +246,8 @@ Versions and licenses checked against crates.io and npm on 2026-10-11.
 | Embedding the UI | `rust-embed` | 8.13 | MIT | |
 | CLI | `clap`, `indicatif` | 4.6, 0.18 | MIT OR Apache-2.0, MIT | |
 | Parallelism | `rayon` | 1.12 | MIT OR Apache-2.0 | |
+| Ctrl-C handling (CLI) | `ctrlc` | 3.5 | MIT OR Apache-2.0 | |
+| Glob expansion (CLI) | `glob` | 0.3 | MIT OR Apache-2.0 | For patterns the shell left unexpanded, as on Windows |
 | Zip (CLI) | `zip` | 9.0 | MIT | STORE mode |
 | Zip (browser) | `client-zip` or `fflate` | 2.5 / 0.8 | MIT | Vendored into `web/` |
 
@@ -284,9 +286,9 @@ The metric work is done: fast-ssim2 at about 1 MP, with starting targets from th
 - [x] Size guard, plus a test that output is never bigger than input
 - [x] Benchmark harness in `bench/` that runs `squish-core` over the corpus and checks NFR-1 (ADR-0025) and the search budget in NFR-2, writing the CSV from §10
 - [x] Recalibrate the targets with the real search: JPEG 88.7, PNG 90. The 2 to 4 MP scoring cap above 16 MP does not pay: the numbers are in ADR-0026.
-- [ ] CLI: files, folders, `-r`, `-o`, `--in-place`, default `.min` suffix
-- [ ] rayon, progress bar, summary, exit codes
-- [ ] Fixture tests in `crates/core/tests/fixtures/` (committed, under 1 MB) that run in CI, plus golden tests over `bench/images/` that run locally and skip when the corpus is absent (ADR-0020)
+- [x] CLI: files, folders, `-r`, `-o`, `--in-place`, default `.min` suffix
+- [x] rayon, progress bar, summary, exit codes
+- [x] Fixture tests in `crates/core/tests/fixtures/` (committed, under 1 MB) that run in CI, plus golden tests over `bench/images/` that run locally and skip when the corpus is absent (ADR-0020)
 
 **Exit criteria:** the benchmark harness shows NFR-1 met for PNG and JPEG as defined in ADR-0025, the search within the NFR-2 budget, and `squish ./bench -r` runs clean.
 
