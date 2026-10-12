@@ -5,3 +5,4 @@ bench/tinypng/*
 !bench/tinypng/.gitkeep
 .env
 bench/.env
+__pycache__/

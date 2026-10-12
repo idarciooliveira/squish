@@ -1,6 +1,6 @@
 # ADR-0022: quantizr as the PNG quantizer
 
-- Status: Accepted
+- Status: Accepted. The per-file quality rule it measures against is superseded by ADR-0025.
 - Date: 2026-10-12
 - Supersedes: the quantizer choice in ADR-0004 (points 2, 5 and 6). The license decision in ADR-0004 stands.
 

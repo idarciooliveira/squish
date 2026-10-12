@@ -1,0 +1,205 @@
+
+===== JPEG: 20 files =====
+TinyPNG dssim: min 0.00032  median 0.00222  max 0.00488
+
+1. Oracle, per-file TinyPNG target (Phase 0 method, this grid)
+  oracle                     bytes  -1.5%  strict 20/20  <=1.25x 20  <=1.5x 20  worst 1.00x  median dssim 0.00214 (0.97x)
+
+2. One fixed dssim target for every file
+  dssim <= 0.0003            bytes +146.3%  strict 20/20  <=1.25x 20  <=1.5x 20  worst 0.91x  median dssim 0.00023 (0.10x)
+  dssim <= 0.0005            bytes +121.3%  strict 19/20  <=1.25x 20  <=1.5x 20  worst 1.07x  median dssim 0.00041 (0.16x)
+  dssim <= 0.0008            bytes +102.5%  strict 18/20  <=1.25x 18  <=1.5x 18  worst 1.73x  median dssim 0.00064 (0.28x)
+  dssim <= 0.001             bytes +76.4%  strict 18/20  <=1.25x 18  <=1.5x 18  worst 2.01x  median dssim 0.00085 (0.40x)
+  dssim <= 0.0012            bytes +66.3%  strict 18/20  <=1.25x 18  <=1.5x 18  worst 3.46x  median dssim 0.00104 (0.46x)
+  dssim <= 0.0015            bytes +52.3%  strict 16/20  <=1.25x 17  <=1.5x 18  worst 3.46x  median dssim 0.00132 (0.62x)
+  dssim <= 0.002             bytes +29.8%  strict 13/20  <=1.25x 16  <=1.5x 16  worst 5.81x  median dssim 0.00182 (0.85x)
+  dssim <= 0.0025            bytes +13.2%  strict  8/20  <=1.25x 14  <=1.5x 15  worst 7.01x  median dssim 0.00232 (1.04x)
+  dssim <= 0.003             bytes  -0.7%  strict  6/20  <=1.25x  7  <=1.5x 14  worst 7.98x  median dssim 0.00283 (1.28x)
+
+3. Candidate metrics with one fixed target
+
+  fs2 @ 1 (18 files): TinyPNG scores min 56.191 median 69.139 max 88.357 (cv 0.13)
+  target = TinyPNG median    bytes +20.8%  strict  9/18  <=1.25x 12  <=1.5x 15  worst 7.01x  median dssim 0.00219 (1.00x)
+  median <= 1x, worst <= 2x t=82.82 bytes +114.8%  strict 16/18  <=1.25x 16  <=1.5x 16  worst 1.73x  median dssim 0.00058 (0.21x)
+  every file <= 1x t=85.11   bytes +147.5%  strict 18/18  <=1.25x 18  <=1.5x 18  worst 0.91x  median dssim 0.00034 (0.15x)
+  median <= 1x, worst <= 1.5x t=85.11 bytes +147.5%  strict 18/18  <=1.25x 18  <=1.5x 18  worst 0.91x  median dssim 0.00034 (0.15x)
+
+  fs2 @ 1mp (20 files): TinyPNG scores min 80.054 median 87.206 max 90.471 (cv 0.03)
+  target = TinyPNG median    bytes -18.4%  strict 10/20  <=1.25x 15  <=1.5x 17  worst 2.81x  median dssim 0.00238 (0.96x)
+  median <= 1x, worst <= 2x t=89.27 bytes  +3.5%  strict 17/20  <=1.25x 19  <=1.5x 19  worst 1.94x  median dssim 0.00179 (0.79x)
+  median <= 1x, worst <= 1.5x t=89.90 bytes +12.2%  strict 18/20  <=1.25x 19  <=1.5x 20  worst 1.37x  median dssim 0.00147 (0.68x)
+  every file <= 1x t=90.74   bytes +26.6%  strict 20/20  <=1.25x 20  <=1.5x 20  worst 0.97x  median dssim 0.00140 (0.61x)
+    sweep t=80.05            bytes -50.4%  strict  1/20  <=1.25x  1  <=1.5x  2  worst 3.77x  median dssim 0.00536 (2.07x)
+    sweep t=81.91            bytes -45.9%  strict  1/20  <=1.25x  1  <=1.5x  4  worst 3.38x  median dssim 0.00427 (1.77x)
+    sweep t=83.77            bytes -39.3%  strict  1/20  <=1.25x  5  <=1.5x 10  worst 3.38x  median dssim 0.00361 (1.47x)
+    sweep t=85.63            bytes -31.9%  strict  6/20  <=1.25x  9  <=1.5x 15  worst 3.23x  median dssim 0.00312 (1.28x)
+    sweep t=87.50            bytes -18.4%  strict 10/20  <=1.25x 15  <=1.5x 17  worst 2.81x  median dssim 0.00238 (0.96x)
+    sweep t=89.36            bytes  +4.5%  strict 17/20  <=1.25x 19  <=1.5x 19  worst 1.94x  median dssim 0.00179 (0.79x)
+    sweep t=91.22            bytes +33.7%  strict 20/20  <=1.25x 20  <=1.5x 20  worst 0.86x  median dssim 0.00129 (0.58x)
+    sweep t=93.08            bytes +101.0%  strict 20/20  <=1.25x 20  <=1.5x 20  worst 0.51x  median dssim 0.00044 (0.21x)
+    sweep t=94.94            bytes +168.0%  strict 20/20  <=1.25x 20  <=1.5x 20  worst 0.51x  median dssim 0.00014 (0.07x)
+
+  fs2 @ 2 (18 files): TinyPNG scores min 75.093 median 82.225 max 93.719 (cv 0.06)
+  target = TinyPNG median    bytes  +5.6%  strict 11/18  <=1.25x 12  <=1.5x 14  worst 10.18x  median dssim 0.00263 (0.94x)
+  median <= 1x, worst <= 2x t=91.62 bytes +148.7%  strict 16/18  <=1.25x 16  <=1.5x 16  worst 1.73x  median dssim 0.00036 (0.16x)
+  every file <= 1x t=93.47   bytes +175.7%  strict 18/18  <=1.25x 18  <=1.5x 18  worst 0.91x  median dssim 0.00015 (0.07x)
+  median <= 1x, worst <= 1.5x t=93.47 bytes +175.7%  strict 18/18  <=1.25x 18  <=1.5x 18  worst 0.91x  median dssim 0.00015 (0.07x)
+
+  ba @ 1 (18 files): TinyPNG scores min 1.700 median 3.288 max 5.444 (cv 0.28)
+  target = TinyPNG median    bytes  +7.9%  strict  9/18  <=1.25x 12  <=1.5x 14  worst 13.85x  median dssim 0.00231 (1.01x)
+  every file <= 1x t=1.99    bytes +149.0%  strict 18/18  <=1.25x 18  <=1.5x 18  worst 0.91x  median dssim 0.00026 (0.11x)
+  median <= 1x, worst <= 1.5x t=1.99 bytes +149.0%  strict 18/18  <=1.25x 18  <=1.5x 18  worst 0.91x  median dssim 0.00026 (0.11x)
+  median <= 1x, worst <= 2x t=2.37 bytes +115.7%  strict 16/18  <=1.25x 17  <=1.5x 17  worst 1.73x  median dssim 0.00046 (0.22x)
+
+  ba @ 1mp (20 files): TinyPNG scores min 0.869 median 1.443 max 2.680 (cv 0.34)
+  target = TinyPNG median    bytes -27.3%  strict  9/20  <=1.25x 11  <=1.5x 14  worst 3.38x  median dssim 0.00332 (1.13x)
+  every file <= 1x t=0.79    bytes +75.7%  strict 20/20  <=1.25x 20  <=1.5x 20  worst 0.97x  median dssim 0.00049 (0.25x)
+  median <= 1x, worst <= 1.5x t=0.96 bytes +31.4%  strict 18/20  <=1.25x 20  <=1.5x 20  worst 1.13x  median dssim 0.00145 (0.54x)
+  median <= 1x, worst <= 2x t=1.05 bytes +10.5%  strict 16/20  <=1.25x 17  <=1.5x 18  worst 1.94x  median dssim 0.00145 (0.63x)
+
+  ba @ 2 (18 files): TinyPNG scores min 0.696 median 1.751 max 2.579 (cv 0.28)
+  target = TinyPNG median    bytes  +0.1%  strict  8/18  <=1.25x 10  <=1.5x 14  worst 10.77x  median dssim 0.00298 (1.11x)
+  every file <= 1x t=0.68    bytes +162.2%  strict 18/18  <=1.25x 18  <=1.5x 18  worst 0.91x  median dssim 0.00022 (0.07x)
+  median <= 1x, worst <= 1.5x t=0.71 bytes +154.2%  strict 17/18  <=1.25x 18  <=1.5x 18  worst 1.07x  median dssim 0.00022 (0.10x)
+  median <= 1x, worst <= 2x t=0.79 bytes +153.1%  strict 16/18  <=1.25x 17  <=1.5x 17  worst 1.73x  median dssim 0.00022 (0.11x)
+
+  ba3 @ 1 (18 files): TinyPNG scores min 0.573 median 1.359 max 1.567 (cv 0.22)
+  target = TinyPNG median    bytes  +3.8%  strict  9/18  <=1.25x 12  <=1.5x 13  worst 7.98x  median dssim 0.00258 (1.02x)
+  every file <= 1x t=0.70    bytes +124.2%  strict 18/18  <=1.25x 18  <=1.5x 18  worst 0.91x  median dssim 0.00040 (0.16x)
+  median <= 1x, worst <= 1.5x t=0.76 bytes +111.6%  strict 17/18  <=1.25x 18  <=1.5x 18  worst 1.07x  median dssim 0.00050 (0.25x)
+  median <= 1x, worst <= 2x t=0.91 bytes +79.7%  strict 16/18  <=1.25x 16  <=1.5x 16  worst 1.73x  median dssim 0.00090 (0.42x)
+
+  ba3 @ 1mp (20 files): TinyPNG scores min 0.377 median 0.560 max 1.383 (cv 0.42)
+  target = TinyPNG median    bytes -20.0%  strict 10/20  <=1.25x 14  <=1.5x 17  worst 3.09x  median dssim 0.00231 (1.02x)
+  every file <= 1x t=0.36    bytes +45.7%  strict 20/20  <=1.25x 20  <=1.5x 20  worst 0.97x  median dssim 0.00084 (0.41x)
+  median <= 1x, worst <= 1.5x t=0.41 bytes +22.4%  strict 17/20  <=1.25x 20  <=1.5x 20  worst 1.13x  median dssim 0.00145 (0.58x)
+  median <= 1x, worst <= 2x t=0.45 bytes  +7.9%  strict 17/20  <=1.25x 17  <=1.5x 17  worst 1.89x  median dssim 0.00154 (0.69x)
+
+  ba3 @ 2 (18 files): TinyPNG scores min 0.338 median 0.720 max 1.439 (cv 0.37)
+  target = TinyPNG median    bytes  +5.5%  strict 10/18  <=1.25x 12  <=1.5x 15  worst 5.81x  median dssim 0.00243 (0.96x)
+  every file <= 1x t=0.31    bytes +142.1%  strict 18/18  <=1.25x 18  <=1.5x 18  worst 0.91x  median dssim 0.00029 (0.15x)
+  median <= 1x, worst <= 1.5x t=0.41 bytes +110.6%  strict 17/18  <=1.25x 18  <=1.5x 18  worst 1.07x  median dssim 0.00047 (0.22x)
+  median <= 1x, worst <= 2x t=0.41 bytes +110.5%  strict 16/18  <=1.25x 17  <=1.5x 17  worst 1.73x  median dssim 0.00050 (0.22x)
+
+  ic_ssim @ 1mp (20 files): TinyPNG scores min 0.673 median 0.885 max 0.976 (cv 0.08)
+  target = TinyPNG median    bytes  +7.5%  strict 11/20  <=1.25x 14  <=1.5x 14  worst 4.40x  median dssim 0.00194 (0.96x)
+  median <= 1x, worst <= 2x t=0.96 bytes +75.0%  strict 17/20  <=1.25x 18  <=1.5x 19  worst 1.73x  median dssim 0.00051 (0.26x)
+  median <= 1x, worst <= 1.5x t=0.97 bytes +90.6%  strict 18/20  <=1.25x 20  <=1.5x 20  worst 1.13x  median dssim 0.00043 (0.24x)
+  every file <= 1x t=0.98    bytes +114.7%  strict 20/20  <=1.25x 20  <=1.5x 20  worst 0.87x  median dssim 0.00034 (0.16x)
+
+  ic_hybrid @ 1mp (20 files): TinyPNG scores min 0.698 median 0.921 max 0.985 (cv 0.07)
+  target = TinyPNG median    bytes  +0.3%  strict 12/20  <=1.25x 12  <=1.5x 14  worst 4.40x  median dssim 0.00194 (0.92x)
+  median <= 1x, worst <= 2x t=0.97 bytes +84.9%  strict 16/20  <=1.25x 17  <=1.5x 19  worst 1.92x  median dssim 0.00038 (0.20x)
+  median <= 1x, worst <= 1.5x t=0.98 bytes +101.8%  strict 18/20  <=1.25x 19  <=1.5x 20  worst 1.37x  median dssim 0.00029 (0.16x)
+  every file <= 1x t=0.98    bytes +115.3%  strict 20/20  <=1.25x 20  <=1.5x 20  worst 0.98x  median dssim 0.00023 (0.13x)
+
+4. Search cost per file, CPU ms (binary search, measured per-probe costs)
+  dssim @ 1   7 probes: median   24699  p95  120107  max  120107
+  dssim @ 1   4 probes: median   14988  p95   73467  max   73467
+  dssim @ 1   3 probes: median   11750  p95   57921  max   57921
+    fs2 @ 1   7 probes: median    8597  p95   51821  max   51821
+    fs2 @ 1   4 probes: median    5065  p95   30968  max   30968
+    fs2 @ 1   3 probes: median    3888  p95   24016  max   24016
+    fs2 @ 1mp 7 probes: median    3793  p95   12716  max   12716
+    fs2 @ 1mp 4 probes: median    2186  p95    7303  max    7303
+    fs2 @ 1mp 3 probes: median    1650  p95    5498  max    5498
+    fs2 @ 2   7 probes: median    4050  p95   19677  max   19677
+    fs2 @ 2   4 probes: median    2393  p95   11631  max   11631
+    fs2 @ 2   3 probes: median    1841  p95    8949  max    8949
+     ba @ 1   7 probes: median   16535  p95   55858  max   55858
+     ba @ 1   4 probes: median    9868  p95   33228  max   33228
+     ba @ 1   3 probes: median    7646  p95   25685  max   25685
+     ba @ 1mp 7 probes: median    4560  p95   13293  max   13293
+     ba @ 1mp 4 probes: median    2649  p95    7652  max    7652
+     ba @ 1mp 3 probes: median    2013  p95    5772  max    5772
+     ba @ 2   7 probes: median    6212  p95   20412  max   20412
+     ba @ 2   4 probes: median    3668  p95   12004  max   12004
+     ba @ 2   3 probes: median    2819  p95    9202  max    9202
+  no search, one encode: median     392  p95    1420  max    1420
+  image size: median 8.6 MP, max 39.8 MP
+
+===== PNG: 41 files =====
+TinyPNG dssim: min 0.00000  median 0.00033  max 0.00246
+
+1. Oracle, per-file TinyPNG target (Phase 0 method, this grid)
+  oracle                     bytes  -3.3%  strict 22/41  <=1.25x 34  <=1.5x 37  worst 2.01x  median dssim 0.00039 (0.99x)
+
+2. One fixed dssim target for every file
+  dssim <= 0.0003            bytes  -3.1%  strict 16/41  <=1.25x 30  <=1.5x 37  worst 2.01x  median dssim 0.00034 (1.03x)
+  dssim <= 0.0005            bytes  -4.7%  strict 13/41  <=1.25x 24  <=1.5x 27  worst 2.35x  median dssim 0.00047 (1.15x)
+  dssim <= 0.0008            bytes  -7.5%  strict 13/41  <=1.25x 19  <=1.5x 23  worst 3.98x  median dssim 0.00076 (1.43x)
+  dssim <= 0.001             bytes  -9.5%  strict 10/41  <=1.25x 16  <=1.5x 20  worst 4.85x  median dssim 0.00089 (1.52x)
+  dssim <= 0.0012            bytes -11.6%  strict  6/41  <=1.25x 13  <=1.5x 16  worst 5.96x  median dssim 0.00107 (2.20x)
+  dssim <= 0.0015            bytes -14.7%  strict  4/41  <=1.25x  7  <=1.5x 14  worst 7.36x  median dssim 0.00129 (2.73x)
+  dssim <= 0.002             bytes -22.3%  strict  1/41  <=1.25x  2  <=1.5x  6  worst 9.32x  median dssim 0.00173 (4.13x)
+  dssim <= 0.0025            bytes -26.8%  strict  0/41  <=1.25x  1  <=1.5x  2  worst 12.39x  median dssim 0.00187 (4.43x)
+  dssim <= 0.003             bytes -29.1%  strict  0/41  <=1.25x  1  <=1.5x  1  worst 14.05x  median dssim 0.00240 (5.22x)
+
+3. Candidate metrics with one fixed target
+
+  fs2 @ 1 (41 files): TinyPNG scores min 40.977 median 83.282 max 94.347 (cv 0.13)
+  target = TinyPNG median    bytes  -2.8%  strict 20/41  <=1.25x 32  <=1.5x 36  worst 2.01x  median dssim 0.00040 (1.01x)
+
+  fs2 @ 1mp (41 files): TinyPNG scores min 61.097 median 88.345 max 96.516 (cv 0.10)
+  target = TinyPNG median    bytes  -3.0%  strict 20/41  <=1.25x 33  <=1.5x 37  worst 2.01x  median dssim 0.00038 (1.02x)
+    sweep t=61.10            bytes -30.4%  strict  1/41  <=1.25x  2  <=1.5x  4  worst 11.65x  median dssim 0.00222 (4.43x)
+    sweep t=65.45            bytes -26.8%  strict  3/41  <=1.25x  4  <=1.5x  6  worst 9.05x  median dssim 0.00173 (3.63x)
+    sweep t=69.80            bytes -23.8%  strict  7/41  <=1.25x  8  <=1.5x 11  worst 8.66x  median dssim 0.00126 (2.11x)
+    sweep t=74.15            bytes -19.8%  strict 12/41  <=1.25x 15  <=1.5x 21  worst 5.35x  median dssim 0.00085 (1.50x)
+    sweep t=78.50            bytes -12.4%  strict 14/41  <=1.25x 20  <=1.5x 23  worst 4.13x  median dssim 0.00075 (1.44x)
+    sweep t=82.85            bytes  -5.9%  strict 15/41  <=1.25x 23  <=1.5x 29  worst 2.55x  median dssim 0.00054 (1.15x)
+    sweep t=87.21            bytes  -3.8%  strict 18/41  <=1.25x 31  <=1.5x 35  worst 2.01x  median dssim 0.00040 (1.03x)
+    sweep t=91.56            bytes  -1.5%  strict 22/41  <=1.25x 34  <=1.5x 37  worst 2.01x  median dssim 0.00034 (0.87x)
+    sweep t=95.91            bytes  -0.8%  strict 22/41  <=1.25x 34  <=1.5x 37  worst 2.01x  median dssim 0.00034 (0.87x)
+
+  fs2 @ 2 (41 files): TinyPNG scores min 54.683 median 88.629 max 96.516 (cv 0.08)
+  target = TinyPNG median    bytes  -3.3%  strict 20/41  <=1.25x 31  <=1.5x 35  worst 2.85x  median dssim 0.00054 (1.02x)
+
+  ba @ 1 (41 files): TinyPNG scores min 0.808 median 3.419 max 27.466 (cv 1.04)
+  target = TinyPNG median    bytes  -2.6%  strict 19/41  <=1.25x 33  <=1.5x 36  worst 2.01x  median dssim 0.00040 (1.01x)
+
+  ba @ 1mp (41 files): TinyPNG scores min 0.289 median 2.401 max 14.323 (cv 1.03)
+  target = TinyPNG median    bytes  -3.0%  strict 20/41  <=1.25x 29  <=1.5x 34  worst 2.01x  median dssim 0.00040 (1.02x)
+
+  ba @ 2 (41 files): TinyPNG scores min 0.289 median 1.552 max 19.393 (cv 1.38)
+  target = TinyPNG median    bytes  -1.6%  strict 20/41  <=1.25x 34  <=1.5x 37  worst 2.01x  median dssim 0.00034 (1.01x)
+
+  ba3 @ 1 (41 files): TinyPNG scores min 0.192 median 0.983 max 5.604 (cv 0.90)
+  target = TinyPNG median    bytes  -2.3%  strict 20/41  <=1.25x 33  <=1.5x 37  worst 2.01x  median dssim 0.00040 (1.01x)
+
+  ba3 @ 1mp (41 files): TinyPNG scores min 0.071 median 0.606 max 3.218 (cv 0.92)
+  target = TinyPNG median    bytes  -2.1%  strict 21/41  <=1.25x 34  <=1.5x 37  worst 2.01x  median dssim 0.00034 (0.99x)
+
+  ba3 @ 2 (41 files): TinyPNG scores min 0.071 median 0.528 max 4.159 (cv 1.10)
+  target = TinyPNG median    bytes  -2.0%  strict 21/41  <=1.25x 34  <=1.5x 37  worst 2.01x  median dssim 0.00039 (0.99x)
+
+  ic_ssim @ 1mp (41 files): TinyPNG scores min 0.824 median 0.984 max 1.000 (cv 0.05)
+  target = TinyPNG median    bytes  -6.2%  strict 13/41  <=1.25x 25  <=1.5x 30  worst 5.61x  median dssim 0.00062 (1.15x)
+
+  ic_hybrid @ 1mp (41 files): TinyPNG scores min 0.884 median 0.988 max 1.000 (cv 0.03)
+  target = TinyPNG median    bytes -11.2%  strict 13/41  <=1.25x 24  <=1.5x 29  worst 7.46x  median dssim 0.00063 (1.15x)
+
+4. Search cost per file, CPU ms (binary search, measured per-probe costs)
+  dssim @ 1   9 probes: median    3169  p95   16022  max   23697
+  dssim @ 1   5 probes: median    1931  p95    9870  max   14447
+  dssim @ 1   3 probes: median    1315  p95    6793  max    9822
+    fs2 @ 1   9 probes: median    1579  p95   15352  max   21323
+    fs2 @ 1   5 probes: median    1008  p95    9786  max   12942
+    fs2 @ 1   3 probes: median     721  p95    7003  max    8751
+    fs2 @ 1mp 9 probes: median     700  p95    5864  max    9127
+    fs2 @ 1mp 5 probes: median     481  p95    4023  max    6227
+    fs2 @ 1mp 3 probes: median     374  p95    3102  max    4777
+    fs2 @ 2   9 probes: median     642  p95    7889  max   10802
+    fs2 @ 2   5 probes: median     447  p95    5060  max    6913
+    fs2 @ 2   3 probes: median     349  p95    3646  max    4968
+     ba @ 1   9 probes: median    3983  p95   21648  max   31429
+     ba @ 1   5 probes: median    2366  p95   13005  max   18851
+     ba @ 1   3 probes: median    1574  p95    8684  max   12562
+     ba @ 1mp 9 probes: median    1033  p95    7234  max    8886
+     ba @ 1mp 5 probes: median     684  p95    4817  max    6060
+     ba @ 1mp 3 probes: median     505  p95    3590  max    4646
+     ba @ 2   9 probes: median     998  p95    7795  max   12070
+     ba @ 2   5 probes: median     652  p95    4980  max    7902
+     ba @ 2   3 probes: median     479  p95    3573  max    5818
+  no search, one encode: median     202  p95    1493  max    2857
+  image size: median 1.0 MP, max 5.8 MP

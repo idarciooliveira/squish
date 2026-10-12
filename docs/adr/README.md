@@ -28,6 +28,8 @@ Every decision that shapes squish's code, license or workflow is recorded here (
 | [0022](0022-quantizr-as-the-png-quantizer.md) | quantizr as the PNG quantizer | Accepted | 2026-10-12 |
 | [0023](0023-mozjpeg-confirmed-over-jpegli.md) | mozjpeg confirmed over jpegli | Accepted | 2026-10-12 |
 | [0024](0024-per-file-quality-search-by-default.md) | Per-file quality search is the default | Accepted | 2026-10-12 |
+| [0025](0025-nfr-1-against-a-fixed-target.md) | NFR-1 judges the median and the worst file, not every file | Accepted | 2026-10-12 |
+| [0026](0026-fast-ssim2-as-the-quality-metric.md) | fast-ssim2 at about 1 MP as the quality metric | Accepted | 2026-10-12 |
 
 ## Template
 

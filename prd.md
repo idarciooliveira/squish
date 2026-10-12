@@ -3,9 +3,9 @@
 | | |
 |---|---|
 | Owner | Idarcio Oliveira (@idarciooliveira) |
-| Status | Approved for Phase 0 |
+| Status | Phase 0 done. Phase 1 next. |
 | Last updated | 2026-10-12 |
-| Decisions | [`docs/adr/`](docs/adr/README.md) (ADR-0001 to ADR-0021) |
+| Decisions | [`docs/adr/`](docs/adr/README.md) (ADR-0001 to ADR-0026) |
 
 ## 1. Summary
 
@@ -58,8 +58,8 @@ Both use the same core library, so they produce identical results.
 1. Detect the format from the magic bytes. Skip APNG.
 2. Check dimensions from the header against the pixel limit.
 3. Decode to RGBA8.
-4. Quantize through the `Quantizer` trait (quantizr, [ADR-0022](docs/adr/0022-quantizr-as-the-png-quantizer.md)) with Floyd-Steinberg dithering, searching the palette size per file against a quality target.
-5. If the quantizer can't reach the minimum quality, skip to step 7 with the original.
+4. Quantize through the `Quantizer` trait (quantizr, [ADR-0022](docs/adr/0022-quantizr-as-the-png-quantizer.md)) with Floyd-Steinberg dithering. Search the palette size per file for the smallest one that scores fs2 ≥ 90 on a copy of about 1 MP ([ADR-0026](docs/adr/0026-fast-ssim2-as-the-quality-metric.md)). If 256 colors misses the target, keep 256.
+5. If quantizing fails, skip to step 7 with the original.
 6. Encode an indexed PNG with the `png` crate.
 7. Optimize with `oxipng::optimize_from_memory` at the preset for the chosen effort.
 8. Apply the size guard.
@@ -67,8 +67,8 @@ Both use the same core library, so they produce identical results.
 ### 4.2 JPEG pipeline
 
 1. Detect the format (`FF D8 FF`) and read dimensions, estimated quality, ICC profile and EXIF orientation.
-2. Skip early if the estimated quality is already at or below the target.
-3. Decode, then re-encode with mozjpeg at the target quality, progressive, 4:2:0 chroma subsampling.
+2. Decode once. Make the ~1 MP scoring copy and the fs2 reference from it.
+3. Search mozjpeg quality per file for the lowest one that scores fs2 ≥ 89.3, starting at q66, with baseline probes ([ADR-0026](docs/adr/0026-fast-ssim2-as-the-quality-metric.md)). Encode the result progressive, with 4:2:0 chroma subsampling. If the input is already smaller than the result, the size guard keeps the input.
 4. Apply the metadata policy: keep ICC and orientation, drop the rest ([ADR-0010](docs/adr/0010-metadata-policy.md)).
 5. Apply the size guard.
 
@@ -81,13 +81,13 @@ Both use the same core library, so they produce identical results.
 
 ### 4.4 Default settings
 
-These are starting points. Phase 0 replaces them with measured values ([ADR-0009](docs/adr/0009-tinypng-style-defaults.md)).
+`--quality auto` searches per file against a target ([ADR-0024](docs/adr/0024-per-file-quality-search-by-default.md), [ADR-0026](docs/adr/0026-fast-ssim2-as-the-quality-metric.md)). The targets are the Phase 0 grid values. Phase 1 recalibrates them with the real search.
 
 | Setting | fast | default | max |
 |---|---|---|---|
-| PNG quality range | 65 to 80 | 65 to 80 | 65 to 80 |
+| PNG | up to 256 colors, no search | smallest palette with fs2 ≥ 90 | same target, more probes allowed |
 | oxipng preset | 1 | 2 | 5 |
-| JPEG quality | 80 | 80 | 80 |
+| JPEG | q66, no search | lowest quality with fs2 ≥ 89.3 | same target, more probes allowed |
 | mozjpeg trellis | off | on | on, with scan optimization |
 | WebP method | 2 | 4 | 6 |
 
@@ -121,7 +121,8 @@ pub struct Output {
 }
 
 pub trait Quantizer {
-    fn quantize(&self, rgba: &[u8], width: u32, height: u32, quality: QualityRange)
+    /// At most `max_colors` colors. The quality search lives outside the trait (ADR-0024).
+    fn quantize(&self, rgba: &[u8], width: u32, height: u32, max_colors: u16, dithering: f32)
         -> Option<(Vec<[u8; 4]>, Vec<u8>)>; // palette, indices
 }
 ```
@@ -180,8 +181,8 @@ Full design, including headers, error bodies and timeout behavior: [ADR-0018](do
 
 | ID | Requirement | Target |
 |---|---|---|
-| NFR-1 | Compression | Within ~5% of TinyPNG's total bytes on the benchmark set, with each file's dssim at or below TinyPNG's for that file (differences under 0.0002 count as equal) |
-| NFR-2 | Batch throughput | Near-linear scaling up to the core count |
+| NFR-1 | Compression | Per format on `bench/`, with default settings: total bytes at most 5% above TinyPNG's, median per-file dssim ratio (ours / TinyPNG's, floored at 0.0002) at most 1.0, and no file above 2.0. For PNG, files at 256 colors don't count toward the 2.0 limit while ADR-0022 stands ([ADR-0025](docs/adr/0025-nfr-1-against-a-fixed-target.md)). |
+| NFR-2 | Batch throughput | Near-linear scaling up to the core count. The quality search costs at most 4x one plain encode (median CPU on `bench/`), and no file takes more than 10 s of CPU ([ADR-0026](docs/adr/0026-fast-ssim2-as-the-quality-metric.md)). |
 | NFR-3 | Binary size | Under 15 MB, stripped release build |
 | NFR-4 | Server idle memory | Under 20 MB RSS |
 | NFR-5 | Peak memory per job | About 4 bytes per pixel times 3, bounded by `max_pixels` |
@@ -195,7 +196,7 @@ Full design, including headers, error bodies and timeout behavior: [ADR-0018](do
 .
 ├── Cargo.toml              # workspace, shared deps and lints, release profile
 ├── crates/
-│   ├── core/               # squish-core: detect, options, errors, size guard, codec/, quant/
+│   ├── core/               # squish-core: detect, options, errors, size guard, metric, search, codec/, quant/
 │   ├── server/             # squish-server: axum routes, limits, embedded web/
 │   └── cli/                # squish, the binary: clap, rayon, indicatif, zip, `serve`
 ├── web/                    # index.html, app.js, style.css, vendor/ zip lib
@@ -211,7 +212,7 @@ One binary, three crates ([ADR-0006](docs/adr/0006-workspace-and-single-binary.m
 ```text
  CLI ─────────────┐
                   ├──> squish-core ──> codec adapters ──> oxipng, quantizr, mozjpeg, libwebp
- Browser ─> HTTP ─┘    detect -> decode -> optimize -> encode -> size guard
+ Browser ─> HTTP ─┘    detect -> decode -> search (encode, score with fast-ssim2) -> encode -> size guard
 ```
 
 ### Release profile
@@ -235,6 +236,7 @@ Versions and licenses checked against crates.io and npm on 2026-10-11.
 | Indexed PNG writing | `png` | 0.18 | MIT OR Apache-2.0 | |
 | Lossless PNG optimization | `oxipng` | 10.2 | MIT | `optimize_from_memory` confirmed in docs.rs |
 | PNG quantization | `quantizr` | 1.4 | MIT | RGBA and dithering confirmed in Phase 0 ([ADR-0022](docs/adr/0022-quantizr-as-the-png-quantizer.md)) |
+| Quality metric | `fast-ssim2` | 0.9 | BSD-2-Clause | ssimulacra2 with SIMD, scored at ~1 MP. Needs Rust 1.89+ ([ADR-0026](docs/adr/0026-fast-ssim2-as-the-quality-metric.md)) |
 | JPEG encoding | `mozjpeg` / `mozjpeg-sys` | 0.10 / 2.2 | IJG (+ Zlib, BSD-3-Clause in -sys) | Compiles vendored C. Without `nasm` it builds without SIMD, which is slower. Last release Feb 2025. |
 | WebP encoding (Phase 2) | `webp` / `libwebp-sys` | 0.3 / 0.14 | MIT OR Apache-2.0 / MIT | |
 | WebP decoding (Phase 2) | `image-webp` | 0.2 | MIT OR Apache-2.0 | |
@@ -268,20 +270,25 @@ Versions and licenses checked against crates.io and npm on 2026-10-11.
 
 **Exit criteria:** an ADR for each open question (quantizer, JPEG encoder, default values), and a results table committed to `bench/`. Met by [ADR-0022](docs/adr/0022-quantizr-as-the-png-quantizer.md), [ADR-0023](docs/adr/0023-mozjpeg-confirmed-over-jpegli.md), [ADR-0024](docs/adr/0024-per-file-quality-search-by-default.md) and `bench/results/`.
 
-### Phase 1: core and CLI for PNG and JPEG (about 1 week)
+### Phase 1: core and CLI for PNG and JPEG (about 2 weeks)
 
+The metric work is done: fast-ssim2 at about 1 MP, with starting targets from the Phase 0 grid ([ADR-0026](docs/adr/0026-fast-ssim2-as-the-quality-metric.md)). The estimate grew from one week because the search, its calibration and the benchmark harness are now part of this phase.
+
+- [x] Pick a permissive quality metric and starting targets ([ADR-0026](docs/adr/0026-fast-ssim2-as-the-quality-metric.md))
 - [ ] Workspace with `crates/core` and `crates/cli` (ADR-0020)
-- [ ] `detect.rs` with tests for each magic number and for animation
-- [ ] Pick a permissive quality metric and calibrate per-format targets on `bench/` ([ADR-0024](docs/adr/0024-per-file-quality-search-by-default.md))
-- [ ] Per-file quality search shared by all formats, fast enough for batch use
-- [ ] `png.rs`: quantize, indexed encoding, oxipng, lossless fallback
-- [ ] `jpeg.rs`: mozjpeg re-encode, metadata policy, orientation
+- [ ] `format.rs` with tests for each magic number and for animation
+- [ ] `metric.rs`: fast-ssim2 on a ~1 MP box-downscaled copy, alpha composited over white and black
+- [ ] `search.rs`: the shared per-file search, JPEG from q66 with interpolation, PNG over the palette size, probe limits per effort
+- [ ] `png.rs`: quantize, indexed encoding, oxipng on the final palette only, lossless fallback
+- [ ] `jpeg.rs`: baseline probes, progressive final encode, metadata policy, orientation
 - [ ] Size guard, plus a test that output is never bigger than input
+- [ ] Benchmark harness in `bench/` that runs `squish-core` over the corpus and checks NFR-1 (ADR-0025) and the search budget in NFR-2, writing the CSV from §10
+- [ ] Recalibrate the targets with the real search. Try a 2 to 4 MP scoring cap above ~16 MP and keep it only if it helps the worst file within budget (ADR-0026 point 6).
 - [ ] CLI: files, folders, `-r`, `-o`, `--in-place`, default `.min` suffix
 - [ ] rayon, progress bar, summary, exit codes
-- [ ] Golden tests over `bench/`: output decodes, same dimensions, size at or below the input
+- [ ] Fixture tests in `crates/core/tests/fixtures/` (committed, under 1 MB) that run in CI, plus golden tests over `bench/images/` that run locally and skip when the corpus is absent (ADR-0020)
 
-**Exit criteria:** NFR-1 met for PNG and JPEG, and `squish ./bench -r` runs clean.
+**Exit criteria:** the benchmark harness shows NFR-1 met for PNG and JPEG as defined in ADR-0025, the search within the NFR-2 budget, and `squish ./bench -r` runs clean.
 
 ### Phase 2: WebP, zip, polish, and AVIF only if needed (about 1 week)
 
@@ -316,8 +323,8 @@ Versions and licenses checked against crates.io and npm on 2026-10-11.
 ## 10. Testing and measurement
 
 - **Unit tests** in `core` for detection, options and the size guard.
-- **Golden tests** run every file in `bench/` and assert the output decodes, keeps its dimensions, and is never bigger than the input.
-- **Benchmark script** writes a CSV per run: file, format, original bytes, squish bytes, TinyPNG bytes, time, SSIM. Phase exit criteria use it.
+- **Golden tests** run every file in `bench/images/` and assert the output decodes, keeps its dimensions, and is never bigger than the input. The corpus is gitignored, so `golden.rs` skips when it's empty and CI relies on the committed fixtures in `crates/core/tests/fixtures/` (ADR-0020).
+- **Benchmark script** writes a CSV per run: file, format, original bytes, squish bytes, TinyPNG bytes, time, the shipped metric's score, and dssim against both squish's and TinyPNG's output. dssim is the NFR-1 reference and never ships. Phase exit criteria use it.
 - **Server integration tests** cover each route and each error code.
 - **Fuzzing** (Phase 4) runs `cargo fuzz` on `detect` and `compress`.
 
@@ -325,7 +332,9 @@ Versions and licenses checked against crates.io and npm on 2026-10-11.
 
 | Risk | Likelihood | Mitigation |
 |---|---|---|
-| quantizr's PNG quality stays below TinyPNG's on about half of `bench/` | High | Accepted for now. Revisit triggers and fallbacks (commercial imagequant, our own quantizer) in [ADR-0022](docs/adr/0022-quantizr-as-the-png-quantizer.md). |
+| quantizr's PNG quality stays below TinyPNG's on about half of `bench/` | High | Accepted for now. NFR-1 doesn't count files already at 256 colors toward its 2.0 limit ([ADR-0025](docs/adr/0025-nfr-1-against-a-fixed-target.md)). Revisit triggers and fallbacks (commercial imagequant, our own quantizer) in [ADR-0022](docs/adr/0022-quantizr-as-the-png-quantizer.md). |
+| The ~1 MP scoring copy hides artifacts on very large photos (the 40 MP file sets the JPEG target) | Medium | Try a 2 to 4 MP cap above ~16 MP in Phase 1 ([ADR-0026](docs/adr/0026-fast-ssim2-as-the-quality-metric.md)) |
+| The JPEG search misses the speed budget | Medium | Baseline probes, a q66 start with interpolation, and DCT-scaled decodes. `--effort fast` skips the search. |
 | Re-encoding grows already-optimized files | High | Size guard and early skips ([ADR-0011](docs/adr/0011-never-return-a-larger-file.md)) |
 | Colors shift or photos come out rotated after stripping metadata | Medium | Keep ICC and orientation ([ADR-0010](docs/adr/0010-metadata-policy.md)) |
 | C toolchain issues on macOS or Windows | Medium | CI builds all three platforms from Phase 4. mozjpeg builds without `nasm`, just slower. |
@@ -339,7 +348,7 @@ These get answered by an ADR when we reach them.
 
 1. ~~Does quantette handle transparency and match imagequant closely enough?~~ No. quantizr ships instead ([ADR-0022](docs/adr/0022-quantizr-as-the-png-quantizer.md)).
 2. ~~Does jpegli beat mozjpeg enough to be worth its build cost?~~ No ([ADR-0023](docs/adr/0023-mozjpeg-confirmed-over-jpegli.md)).
-3. ~~What are the measured default quality values?~~ A per-file search, with targets calibrated in Phase 1 ([ADR-0024](docs/adr/0024-per-file-quality-search-by-default.md)).
+3. ~~What are the measured default quality values?~~ A per-file search ([ADR-0024](docs/adr/0024-per-file-quality-search-by-default.md)) with fast-ssim2 targets of 89.3 for JPEG and 90 for PNG, recalibrated in Phase 1 ([ADR-0026](docs/adr/0026-fast-ssim2-as-the-quality-metric.md)).
 4. Does the AVIF trigger fire? (Phase 2)
 5. Does the web version go public? (After Phase 3, [ADR-0014](docs/adr/0014-local-first-deployment.md))
 
