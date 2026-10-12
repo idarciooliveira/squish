@@ -4,8 +4,8 @@
 |---|---|
 | Owner | Idarcio Oliveira (@idarciooliveira) |
 | Status | Approved for Phase 0 |
-| Last updated | 2026-10-11 |
-| Decisions | [`docs/adr/`](docs/adr/README.md) (ADR-0001 to ADR-0016) |
+| Last updated | 2026-10-12 |
+| Decisions | [`docs/adr/`](docs/adr/README.md) (ADR-0001 to ADR-0021) |
 
 ## 1. Summary
 
@@ -101,6 +101,7 @@ These are starting points. Phase 0 replaces them with measured values ([ADR-0009
 - **FR-4** Rejects images above `max_pixels` before decoding (default 50 megapixels).
 - **FR-5** Does no file I/O, no network calls and no printing.
 - **FR-6** The quantizer is pluggable through a trait. Cargo features choose the implementation.
+- **FR-6a** Option types implement `FromStr`, and `Error` has stable codes. The CLI and the API share both ([ADR-0017](docs/adr/0017-shared-options-and-errors.md)).
 
 ```rust
 pub enum Format { Png, Jpeg, WebP, Avif }
@@ -127,16 +128,18 @@ pub trait Quantizer {
 
 ### 5.2 CLI (`squish`)
 
-- **FR-7** Accepts files, folders and globs. `-r` recurses into folders.
+Full design, including file selection, output paths, the JSON report and Ctrl-C handling: [ADR-0019](docs/adr/0019-cli-design.md).
+
+- **FR-7** Accepts files, folders, globs and `-` for stdin. `-r` recurses into folders. Folder walks only pick image extensions and skip `*.min.*`, hidden files and symlinks.
 - **FR-8** Output modes:
   - default: `name.min.ext` next to the input
-  - `-o DIR`: mirror the input tree into DIR with the original names
+  - `-o, --out-dir DIR`: mirror the input tree into DIR with the original names
   - `--in-place`: overwrite, after a confirmation prompt unless `--yes` is passed
   - `--zip FILE`: write everything into one STORE zip ([ADR-0008](docs/adr/0008-download-all-zip-in-browser.md))
-- **FR-9** Flags `--quality auto|0-100|lossless`, `--effort fast|default|max`, `--metadata strip-keep-icc|strip-all|keep-all`, `--jobs N` (defaults to the number of cores), `--dry-run`, `--json`.
+- **FR-9** Flags `--quality auto|0-100|lossless`, `--lossless`, `-e, --effort fast|default|max`, `--metadata strip-keep-icc|strip-all|keep-all`, `--max-pixels MP`, `-j, --jobs N` (defaults to the number of cores), `-n, --dry-run`, `--json`, `-y, --yes`, `-q, --quiet`.
 - **FR-10** Processes files in parallel with rayon and shows a progress bar on a TTY.
 - **FR-11** Ends with a summary: file count, bytes before and after, percent saved, elapsed time, and the lists of files that were already optimized, unsupported, or failed.
-- **FR-12** Exit codes: `0` when everything succeeded or was skipped as unsupported, `1` when at least one file failed, `2` for usage errors.
+- **FR-12** Exit codes: `0` when everything succeeded or was skipped as unsupported, `1` when at least one file failed, `2` for usage errors, `130` when interrupted.
 
 ```text
 $ squish ./images -r -o ./out
@@ -147,16 +150,19 @@ $ squish ./images -r -o ./out
 
 ### 5.3 HTTP server (`squish serve`)
 
-- **FR-13** `squish serve [--host 127.0.0.1] [--port 8080] [--open]`. Binds to localhost by default ([ADR-0014](docs/adr/0014-local-first-deployment.md)).
+Full design, including headers, error bodies and timeout behavior: [ADR-0018](docs/adr/0018-http-api.md).
+
+- **FR-13** `squish serve [--host 127.0.0.1] [--port 8080] [--open] [--jobs N] [--max-body MB] [--max-pixels MP] [--timeout SECS]`, with `SQUISH_HOST` and `SQUISH_PORT` env vars. Binds to localhost by default ([ADR-0014](docs/adr/0014-local-first-deployment.md)).
 - **FR-14** Routes:
 
 | Route | Behavior |
 |---|---|
 | `GET /` and static assets | The embedded web UI |
-| `POST /api/compress?quality=&effort=` | The body is the raw image bytes. The response is the compressed image, with `Content-Type`, `X-Original-Size`, `X-Compressed-Size` and `X-Kept-Original`. |
+| `POST /api/compress?quality=&effort=&metadata=` | The body is the raw image bytes. The response is the compressed image, with `Content-Type`, `X-Original-Size`, `X-Compressed-Size`, `X-Kept-Original` and `Server-Timing`. |
+| `GET /api/info` | Version, supported formats, limits and defaults, as JSON |
 | `GET /api/health` | `200 ok` |
 
-- **FR-15** Error responses: `413` above the body limit (default 25 MB) or the pixel limit, `415` for unsupported or animated formats, `429` when every CPU slot is busy, `422` when decoding fails, `504` when the per-request timeout passes (default 30 s).
+- **FR-15** Error responses carry a JSON body `{"error": code, "message": text}`: `400` for an empty body or a bad option, `413` above the body limit (default 25 MB) or the pixel limit, `415` for unsupported or animated formats, `422` when decoding fails, `429` with `Retry-After` when every CPU slot is busy, `500` when encoding fails, `504` when the per-request timeout passes (default 30 s).
 - **FR-16** Stateless. Nothing is written to disk ([ADR-0007](docs/adr/0007-stateless-server-side-compression.md)).
 - **FR-17** CPU work runs in `spawn_blocking`, gated by a semaphore sized to the core count.
 
@@ -186,18 +192,19 @@ $ squish ./images -r -o ./out
 ## 7. Architecture
 
 ```text
-squish/
-├── Cargo.toml              # workspace, shared release profile
+.
+├── Cargo.toml              # workspace, shared deps and lints, release profile
 ├── crates/
-│   ├── core/               # squish-core: detect, pipelines, size guard, Quantizer trait
-│   │   └── src/{lib,detect,options,png,jpeg,webp,metadata}.rs, quant/
+│   ├── core/               # squish-core: detect, options, errors, size guard, codec/, quant/
 │   ├── server/             # squish-server: axum routes, limits, embedded web/
-│   └── cli/                # squish binary: clap, rayon, indicatif, zip, `serve`
-├── web/                    # index.html, app.js, style.css, vendored zip lib
-├── bench/                  # test images, TinyPNG baseline, scripts, results
-├── tests/                  # golden tests over bench/
+│   └── cli/                # squish, the binary: clap, rayon, indicatif, zip, `serve`
+├── web/                    # index.html, app.js, style.css, vendor/ zip lib
+├── bench/                  # outside the workspace: corpus (gitignored), spike/, scripts, results
+├── fuzz/                   # Phase 4, outside the workspace
 └── docs/adr/
 ```
+
+The file-level layout and the rules around it are in [ADR-0020](docs/adr/0020-repository-layout.md).
 
 One binary, three crates ([ADR-0006](docs/adr/0006-workspace-and-single-binary.md)).
 
@@ -213,7 +220,7 @@ One binary, three crates ([ADR-0006](docs/adr/0006-workspace-and-single-binary.m
 [profile.release]
 lto = "fat"
 codegen-units = 1
-panic = "abort"
+panic = "unwind"  # mozjpeg panics on bad input, see ADR-0017
 strip = true
 ```
 
@@ -250,7 +257,8 @@ Versions and licenses checked against crates.io and npm on 2026-10-11.
 
 ### Phase 0: spike and benchmark (2 to 3 days), [ADR-0016](docs/adr/0016-benchmark-before-building.md)
 
-- [ ] Install `rustup`, `build-essential`, `nasm` and `cmake` on WSL
+- [x] Install `rustup` (stable 1.99.0) and `build-essential` on WSL
+- [x] Install `nasm` (3.01) and `cmake` (4.2.3) on WSL
 - [ ] Collect ~50 images in `bench/`: photos, screenshots, logos with alpha, illustrations, already-optimized files
 - [ ] Run them through TinyPNG once and save the output as the baseline
 - [ ] Throwaway program: PNG via quantette + oxipng, and via imagequant + oxipng
@@ -262,7 +270,7 @@ Versions and licenses checked against crates.io and npm on 2026-10-11.
 
 ### Phase 1: core and CLI for PNG and JPEG (about 1 week)
 
-- [ ] Workspace with the `core` and `cli` crates
+- [ ] Workspace with `crates/core` and `crates/cli` (ADR-0020)
 - [ ] `detect.rs` with tests for each magic number and for animation
 - [ ] `png.rs`: quantize, indexed encoding, oxipng, lossless fallback
 - [ ] `jpeg.rs`: mozjpeg re-encode, metadata policy, orientation
@@ -302,6 +310,7 @@ Versions and licenses checked against crates.io and npm on 2026-10-11.
 - [ ] Automatic quality mode that searches for the lowest quality above an SSIM target
 - [ ] Optional in-browser WASM mode
 - [ ] Optional resizing and format conversion
+- [ ] Tinify-compatible routes, only if a trigger in [ADR-0021](docs/adr/0021-tinify-compatible-api.md) fires
 
 ## 10. Testing and measurement
 

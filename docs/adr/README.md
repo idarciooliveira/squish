@@ -20,6 +20,11 @@ Every decision that shapes squish's code, license or workflow is recorded here (
 | [0014](0014-local-first-deployment.md) | Local first, ready to harden for public use | Accepted | 2026-10-11 |
 | [0015](0015-commit-policy.md) | One-line commits, owner as the only author, no AI attribution | Accepted | 2026-10-11 |
 | [0016](0016-benchmark-before-building.md) | Benchmark against TinyPNG before building the product | Accepted | 2026-10-11 |
+| [0017](0017-shared-options-and-errors.md) | One options grammar and one error list, owned by the core | Accepted | 2026-10-12 |
+| [0018](0018-http-api.md) | HTTP API design | Accepted | 2026-10-12 |
+| [0019](0019-cli-design.md) | CLI design | Accepted | 2026-10-12 |
+| [0020](0020-repository-layout.md) | Repository layout | Accepted | 2026-10-12 |
+| [0021](0021-tinify-compatible-api.md) | Optional Tinify-compatible API | Deferred | 2026-10-12 |
 
 ## Template
 
