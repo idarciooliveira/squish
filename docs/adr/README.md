@@ -13,7 +13,7 @@ Every decision that shapes squish's code, license or workflow is recorded here (
 | [0007](0007-stateless-server-side-compression.md) | Compress on the server, keep the server stateless | Accepted | 2026-10-11 |
 | [0008](0008-download-all-zip-in-browser.md) | "Download all" builds a STORE zip in the browser | Accepted | 2026-10-11 |
 | [0009](0009-tinypng-style-defaults.md) | No knobs by default, settings for those who want them | Partly superseded by ADR-0024 | 2026-10-11 |
-| [0010](0010-metadata-policy.md) | Strip metadata except the color profile and orientation | Accepted | 2026-10-11 |
+| [0010](0010-metadata-policy.md) | Strip metadata except the color profile and orientation | Accepted, PNG color chunks amended by ADR-0027 | 2026-10-11 |
 | [0011](0011-never-return-a-larger-file.md) | Never return a larger file | Accepted | 2026-10-11 |
 | [0012](0012-avif-deferred.md) | AVIF only in Phase 2, and only if needed | Accepted | 2026-10-11 |
 | [0013](0013-vanilla-frontend-embedded.md) | Vanilla HTML and JS for the web UI, embedded in the binary | Accepted | 2026-10-11 |
@@ -30,6 +30,7 @@ Every decision that shapes squish's code, license or workflow is recorded here (
 | [0024](0024-per-file-quality-search-by-default.md) | Per-file quality search is the default | Accepted | 2026-10-12 |
 | [0025](0025-nfr-1-against-a-fixed-target.md) | NFR-1 judges the median and the worst file, not every file | Accepted | 2026-10-12 |
 | [0026](0026-fast-ssim2-as-the-quality-metric.md) | fast-ssim2 at about 1 MP as the quality metric | Accepted | 2026-10-12 |
+| [0027](0027-png-color-chunks-and-lossless-fallback.md) | Keep PNG color chunks, and try lossless when 256 colors barely helps | Accepted | 2026-10-12 |
 
 ## Template
 

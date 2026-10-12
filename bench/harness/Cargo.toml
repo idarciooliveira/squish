@@ -1,0 +1,20 @@
+[package]
+name = "harness"
+version = "0.0.0"
+edition = "2024"
+
+# Phase 1 benchmark harness. NOT a workspace member (ADR-0020): it links dssim (AGPL),
+# the NFR-1 referee, which must never reach the shipped binary.
+
+[dependencies]
+squish-core = { path = "../../crates/core" }
+dssim = "3.5"
+rgb = "0.8"
+image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }
+libc = "0.2"
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+panic = "unwind"

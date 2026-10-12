@@ -24,26 +24,28 @@ ADR-0024 made `--quality auto` a per-file search against a quality target, and l
 - fast-ssim2 0.9 gives the same scores as the reference `ssimulacra2` 0.5 crate (within 0.24 points on 33 files) at about a tenth of the CPU.
 - Scoring at ~1 MP also caps the metric's memory. The bench run with full-size metrics ran out of 16 GB on the 40 MP and 66 MP photos.
 
-The search's cost per probe was measured at the median, CPU time, release build:
+The search's cost per probe was measured at the median, CPU time, release build. Phase 0 grid estimates first, then the Phase 1 harness measurements:
 
 | | JPEG | PNG |
 |---|---|---|
 | encode a probe | 416 ms (mozjpeg, progressive) | 21 ms (quantizr) |
-| decode, or palette lookup | 45 ms | in the above |
+| encode a probe, `Profile::Fast` (no trellis) | 50-90 ms | |
+| decode, or palette lookup | 45-80 ms full; DCT 1/4 decode 146 ms on a 32 MP file | in the above |
 | downscale to ~1 MP | 12 ms | 4 ms |
 | fs2 at ~1 MP | 63 ms | 30 ms |
+| fs2 at ~1 MP, measured in Phase 1 (fast-ssim2 0.9) | ~120 ms per compare on synthetic data; ~50 ms floor on small images | in the above |
 | final step, once | none | 186 ms (oxipng) |
 
 ## Decision
 
 1. The metric is fast-ssim2 (`fast-ssim2` crate, BSD-2-Clause) on a copy box-downscaled by an integer factor to at most about 1 MP. Images with alpha are composited over white and over black, and the lower score counts.
-2. Starting targets: JPEG fs2 ≥ 89.3, PNG fs2 ≥ 90. Phase 1 recalibrates them with the real search, which steps one quality point at a time. The grid stepped by 3, which cost about 3% in bytes against the Phase 0 sweep.
+2. Starting targets: JPEG fs2 ≥ 89.3, PNG fs2 ≥ 90. **Recalibrated in Phase 1:** JPEG fs2 ≥ 88.7, PNG fs2 ≥ 90 unchanged. The recalibration measures what TinyPNG's own outputs score on this metric over the bench corpus (median 89.4) and aims just under it. At 88.7 JPEG takes −1.3% of TinyPNG's total bytes with a median dssim ratio of 0.82 and a worst file of 1.83; at 89.3 the same search cost +7.5% bytes for quality no file needed (median dssim ratio 0.70). TinyPNG's own per-file scores still spread from 80 (`image (18).jpg`) to 92.7, and the fixed target plus the size guard handle that spread better than a stricter one did.
 3. The search, per format:
-   - JPEG: start at q66. Pick the next probe by interpolating between the two closest scores, with a bracketed search as the fallback. Stop when the bracket is 1 quality point wide or after 5 probes. Probes are encoded baseline. Only the final encode is progressive, which doesn't change pixels.
-   - PNG: bracketed search over the palette size, 2 to 256 colors, scored on the remapped pixels. oxipng runs only on the final palette.
-4. Speed budget, measured on `bench/` with a release build: the search, including the final encode, costs at most 4x one plain encode at the median, and no file goes over 10 s of CPU. On the grid data, 4 probes cost 5.6x one encode for JPEG and 2.4x for PNG. The baseline probes, the smarter start and the cheap decode in point 5 are how JPEG gets under 4x.
-5. Things to try first if JPEG misses the budget: decode probes with libjpeg's DCT scaling (1/2, 1/4 or 1/8), which skips most of the decode and the downscale.
-6. Large images. On the grid, the worst JPEG is the 40 MP `image (7).jpg`. At fs2 ≥ 89 it lands at 2.09x, and it alone pushes the JPEG target up to 89.3, which costs about 3% in bytes on every other file. Downscaled 7x, its artifacts don't show. Phase 1 tries a higher cap (2 to 4 MP) for images above about 16 MP. It keeps that cap only if it brings that file under 2x without breaking the speed budget, and then lowers the JPEG target to match.
+   - JPEG: two stages. Stage 1: cheap `Profile::Fast` (baseline) probes from q74, interpolated with slope moves, at most 3 probes, stopping within 1.0 point of the target. Stage 2: mozjpeg trellis probes within three quality points of stage 1's landing (trellis at the same quality lands within ~1 point, but costs about 15× a baseline encode), at most 2 probes (3 for `max`), stopping within 0.7. Stage 2 never spends a probe on q95 on a miss: the best fitting encode below the size guard takes over instead, or the size guard keeps the input.
+   - PNG: bracketed search over the palette index, top first, scored on the quantized remap. oxipng runs only on the final palette.
+4. Speed budget, measured on `bench/` with a release build: the search, including the final encode, costs at most 4x one plain encode at the median, and no file goes over 10 s of CPU. The two-stage search lands on **3.7x** median (slowest 3.4 s) for JPEG and 1.8x for PNG (runs of 2026-10-12, `bench/results/phase1-final.csv`).
+5. Things to try first if JPEG misses the budget: decode probes with libjpeg's DCT scaling (1/2, 1/4 or 1/8), which skips most of the decode and the downscale. **Tried in Phase 1 and shelved.** The DCT decode saved only about 30% of the decode (146 ms at 1/4 against 208 ms full on a 32 MP file). Scaled copies also score differently: TinyPNG's median shifted from 89.3 to 88.4 on them, and the fixed target then left the worst files far off (dssim ratio 3.2-3.4 on `image (1).jpg` across targets 88.9 to 89.5, over the 2.0 limit). Box-averaged scoring stayed; the probe caps in point 3 got JPEG under the budget instead.
+6. Large images. On the grid, the worst JPEG is the 40 MP `image (7).jpg`, at fs2 ≥ 89 it lands at 2.09x. Under the recalibrated target it lands at 1.61 (Phase 1 final run), so the 2 to 4 MP scoring cap from the grid plan is not needed.
 7. `--effort fast` keeps the fixed settings from ADR-0024. `--effort max` may raise the probe limit. It doesn't change the target.
 
 ## Consequences

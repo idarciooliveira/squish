@@ -1,0 +1,43 @@
+[workspace]
+resolver = "3"
+members = ["crates/*"]
+exclude = ["bench", "fuzz"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+rust-version = "1.89"
+repository = "https://github.com/idarciooliveira/squish"
+
+[workspace.dependencies]
+squish-core = { path = "crates/core" }
+
+# codecs and metric (versions and licenses: prd.md section 8)
+png = "0.18"
+oxipng = { version = "10.2", default-features = false }
+quantizr = "1.4"
+fast-ssim2 = "0.9"
+mozjpeg = "0.10"
+
+# cli
+clap = { version = "4.6", features = ["derive"] }
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+# Pixel code walks buffers in fixed-size chunks, and `chunks_exact` reads better there.
+chunks_exact_to_as_chunks = "allow"
+
+# Tests run real encodes. mozjpeg's C code is built at the profile's opt-level, and at 0
+# a single search takes minutes.
+[profile.dev]
+opt-level = 2
+
+[profile.release]
+lto = "fat"
+codegen-units = 1
+panic = "unwind" # mozjpeg panics on bad input, see ADR-0017
+strip = true
