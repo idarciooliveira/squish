@@ -3,7 +3,7 @@
 //! For each file, find the cheapest setting whose dssim is at or below TinyPNG's
 //! (with a floor, so differences nobody can see don't count), then report bytes.
 //! PNG: smallest max_colors for quantizr, and for imagequant as a reference.
-//! JPEG: lowest mozjpeg quality.
+//! JPEG: lowest quality for mozjpeg and for jpegli.
 //! Results go to a CSV: file,format,variant,setting,out_bytes,dssim,target,tinypng_bytes,met,encode_ms.
 
 use std::error::Error;
@@ -70,9 +70,12 @@ fn main() -> Res<()> {
         let target = tiny_dssim.max(FLOOR);
         println!("--- {name} ({fmt}) tinypng {} bytes dssim {tiny_dssim:.5} target {target:.5}", tiny.len());
 
-        // SWEEP_ONLY=quantizr limits the run to quantizr on PNGs.
-        let only_quantizr = std::env::var("SWEEP_ONLY").is_ok_and(|v| v == "quantizr");
-        let found: Vec<Found> = if fmt == "png" {
+        // SWEEP_ONLY=quantizr limits the run to quantizr on PNGs, SWEEP_ONLY=jpeg to JPEGs.
+        let only = std::env::var("SWEEP_ONLY").unwrap_or_default();
+        let only_quantizr = only == "quantizr";
+        let found: Vec<Found> = if fmt == "png" && only == "jpeg" {
+            vec![]
+        } else if fmt == "png" {
             let mut f = vec![png_search("quantizr+oxipng", &rgba, w, h, target, &score_rgba, quantizr_quantize)];
             if !only_quantizr {
                 f.push(png_search("imagequant+oxipng", &rgba, w, h, target, &score_rgba, imagequant_quantize));
@@ -81,7 +84,10 @@ fn main() -> Res<()> {
         } else if only_quantizr {
             vec![]
         } else {
-            vec![jpeg_search(&rgba, w, h, target, &score_bytes)]
+            vec![
+                jpeg_search("mozjpeg", mozjpeg_encode, &rgba, w, h, target, &score_bytes),
+                jpeg_search("jpegli", jpegli_encode, &rgba, w, h, target, &score_bytes),
+            ]
         };
 
         for f in found {
@@ -214,12 +220,36 @@ fn mozjpeg_encode(rgb: &image::RgbImage, w: u32, h: u32, q: u8) -> Option<Vec<u8
     comp.finish().ok()
 }
 
+fn jpegli_encode(rgb: &image::RgbImage, w: u32, h: u32, q: u8) -> Option<Vec<u8>> {
+    let mut comp = jpegli::Compress::new(jpegli::ColorSpace::JCS_RGB);
+    comp.set_size(w as usize, h as usize);
+    comp.set_quality(q as f32);
+    comp.set_progressive_mode();
+    comp.set_optimize_coding(true);
+    // JPEGLI_420=1 forces 4:2:0 chroma, like mozjpeg's default.
+    if std::env::var("JPEGLI_420").is_ok_and(|v| v == "1") {
+        comp.set_chroma_sampling_pixel_sizes((2, 2), (2, 2));
+    }
+    let mut comp = comp.start_compress(Vec::new()).ok()?;
+    comp.write_scanlines(&rgb.as_raw()[..]).ok()?;
+    comp.finish().ok()
+}
+
+type JpegEncode = fn(&image::RgbImage, u32, u32, u8) -> Option<Vec<u8>>;
+
 /// Binary search for the lowest quality that meets `target`. Falls back to q95.
-fn jpeg_search(rgba: &image::RgbaImage, w: u32, h: u32, target: f64, score: &dyn Fn(&[u8]) -> f64) -> Found {
-    let variant = "mozjpeg";
+fn jpeg_search(
+    variant: &'static str,
+    encode: JpegEncode,
+    rgba: &image::RgbaImage,
+    w: u32,
+    h: u32,
+    target: f64,
+    score: &dyn Fn(&[u8]) -> f64,
+) -> Found {
     let t = Instant::now();
     let rgb = image::DynamicImage::ImageRgba8(rgba.clone()).to_rgb8();
-    let try_q = |q: u8| mozjpeg_encode(&rgb, w, h, q).map(|b| { let d = score(&b); (q, b, d) });
+    let try_q = |q: u8| encode(&rgb, w, h, q).map(|b| { let d = score(&b); (q, b, d) });
     let (mut lo, mut hi) = (20u8, 95u8);
     let mut best = try_q(hi);
     let met = best.as_ref().is_some_and(|b| b.2 <= target);
