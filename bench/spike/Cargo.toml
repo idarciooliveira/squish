@@ -1,0 +1,21 @@
+[package]
+name = "spike"
+version = "0.0.0"
+edition = "2021"
+
+# Throwaway Phase 0 benchmark. NOT a workspace member (ADR-0020):
+# may link GPL (imagequant) and AGPL (dssim) crates for comparison.
+# Never add this as a dependency of squish crates.
+
+[dependencies]
+image = "0.25"
+png = "0.18"
+oxipng = "10.2"
+quantette = "0.6"
+imagequant = "4.4"
+mozjpeg = "0.10"
+dssim = "3.5"
+rgb = "0.8"
+
+[profile.dev]
+opt-level = 2

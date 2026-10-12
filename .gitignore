@@ -1,0 +1,7 @@
+target/
+bench/images/*
+bench/tinypng/*
+!bench/images/.gitkeep
+!bench/tinypng/.gitkeep
+.env
+bench/.env

@@ -1,0 +1,249 @@
+file,format,variant,original_bytes,out_bytes,saved_pct,encode_ms,dssim,tinypng_bytes,note
+1.png,png,oxipng-only,113340,113340,0.0,66,0.00000,28447,
+1.png,png,quantette+oxipng,113340,,,0,,28447,"skipped: image has alpha, quantette 0.6 is RGB-only"
+1.png,png,imagequant+oxipng,113340,31628,72.1,91,0.00078,28447,"256 colors, qSome(76)"
+1.png,png,tinypng,113340,28447,74.9,0,0.00112,28447,
+1_webp_a.png,png,oxipng-only,101519,101519,0.0,83,0.00000,26864,
+1_webp_a.png,png,quantette+oxipng,101519,,,0,,26864,"skipped: image has alpha, quantette 0.6 is RGB-only"
+1_webp_a.png,png,imagequant+oxipng,101519,30424,70.0,81,0.00080,26864,"256 colors, qSome(77)"
+1_webp_a.png,png,tinypng,101519,26864,73.5,0,0.00125,26864,
+2.png,png,oxipng-only,39063,39063,0.0,130,0.00000,20243,
+2.png,png,quantette+oxipng,39063,,,0,,20243,"skipped: image has alpha, quantette 0.6 is RGB-only"
+2.png,png,imagequant+oxipng,39063,15599,60.1,74,0.00049,20243,"86 colors, qSome(88)"
+2.png,png,tinypng,39063,20243,48.2,0,0.00014,20243,
+2_webp_a.png,png,oxipng-only,61918,61918,0.0,133,0.00000,25679,
+2_webp_a.png,png,quantette+oxipng,61918,,,0,,25679,"skipped: image has alpha, quantette 0.6 is RGB-only"
+2_webp_a.png,png,imagequant+oxipng,61918,19837,68.0,66,0.00044,25679,"111 colors, qSome(89)"
+2_webp_a.png,png,tinypng,61918,25679,58.5,0,0.00019,25679,
+3.png,png,oxipng-only,218662,218662,0.0,228,0.00000,48305,
+3.png,png,quantette+oxipng,218662,,,0,,48305,"skipped: image has alpha, quantette 0.6 is RGB-only"
+3.png,png,imagequant+oxipng,218662,,,63,,48305,quantize: QualityTooLow
+3.png,png,tinypng,218662,48305,77.9,0,0.00159,48305,
+3_webp_a.png,png,oxipng-only,231194,231194,0.0,234,0.00000,49224,
+3_webp_a.png,png,quantette+oxipng,231194,,,0,,49224,"skipped: image has alpha, quantette 0.6 is RGB-only"
+3_webp_a.png,png,imagequant+oxipng,231194,,,58,,49224,quantize: QualityTooLow
+3_webp_a.png,png,tinypng,231194,49224,78.7,0,0.00165,49224,
+4.png,png,oxipng-only,50397,50397,0.0,49,0.00000,16099,
+4.png,png,quantette+oxipng,50397,,,0,,16099,"skipped: image has alpha, quantette 0.6 is RGB-only"
+4.png,png,imagequant+oxipng,50397,15270,69.7,61,0.00006,16099,"244 colors, qSome(89)"
+4.png,png,tinypng,50397,16099,68.1,0,0.00007,16099,
+5.png,png,oxipng-only,129875,129875,0.0,97,0.00000,25643,
+5.png,png,quantette+oxipng,129875,,,0,,25643,"skipped: image has alpha, quantette 0.6 is RGB-only"
+5.png,png,imagequant+oxipng,129875,27804,78.6,93,0.00025,25643,"256 colors, qSome(70)"
+5.png,png,tinypng,129875,25643,80.3,0,0.00033,25643,
+Captura de ecrã 2026-10-09 110328.png,png,oxipng-only,1012535,759742,25.0,1140,0.00000,283403,
+Captura de ecrã 2026-10-09 110328.png,png,quantette+oxipng,1012535,375840,62.9,834,0.00074,283403,256 colors
+Captura de ecrã 2026-10-09 110328.png,png,imagequant+oxipng,1012535,230240,77.3,721,0.00084,283403,"94 colors, qSome(87)"
+Captura de ecrã 2026-10-09 110328.png,png,tinypng,1012535,283403,72.0,0,0.00052,283403,
+Captura de ecrã 2026-10-12 100302.png,png,oxipng-only,963880,757000,21.5,748,0.00000,266028,
+Captura de ecrã 2026-10-12 100302.png,png,quantette+oxipng,963880,331780,65.6,570,0.00087,266028,256 colors
+Captura de ecrã 2026-10-12 100302.png,png,imagequant+oxipng,963880,239440,75.2,547,0.00070,266028,"106 colors, qSome(89)"
+Captura de ecrã 2026-10-12 100302.png,png,tinypng,963880,266028,72.4,0,0.00048,266028,
+anaconda_PNG115458.png,png,oxipng-only,1137521,1136756,0.1,297,0.00000,346752,
+anaconda_PNG115458.png,png,quantette+oxipng,1137521,,,0,,346752,"skipped: image has alpha, quantette 0.6 is RGB-only"
+anaconda_PNG115458.png,png,imagequant+oxipng,1137521,332419,70.8,258,0.00032,346752,"256 colors, qSome(91)"
+anaconda_PNG115458.png,png,tinypng,1137521,346752,69.5,0,0.00042,346752,
+cow_PNG50628.png,png,oxipng-only,1807518,1801965,0.3,2908,0.00000,626022,
+cow_PNG50628.png,png,quantette+oxipng,1807518,,,0,,626022,"skipped: image has alpha, quantette 0.6 is RGB-only"
+cow_PNG50628.png,png,imagequant+oxipng,1807518,679521,62.4,1095,0.00094,626022,"256 colors, qSome(88)"
+cow_PNG50628.png,png,tinypng,1807518,626022,65.4,0,0.00110,626022,
+cow_PNG50629.png,png,oxipng-only,3987651,3973169,0.4,2614,0.00000,1128792,
+cow_PNG50629.png,png,quantette+oxipng,3987651,,,0,,1128792,"skipped: image has alpha, quantette 0.6 is RGB-only"
+cow_PNG50629.png,png,imagequant+oxipng,3987651,1259986,68.4,1192,0.00074,1128792,"256 colors, qSome(89)"
+cow_PNG50629.png,png,tinypng,3987651,1128792,71.7,0,0.00134,1128792,
+gradient-gold-crown-logo-template.png,png,oxipng-only,820016,735930,10.3,953,0.00000,130742,
+gradient-gold-crown-logo-template.png,png,quantette+oxipng,820016,,,0,,130742,"skipped: image has alpha, quantette 0.6 is RGB-only"
+gradient-gold-crown-logo-template.png,png,imagequant+oxipng,820016,105334,87.2,499,0.00009,130742,"88 colors, qSome(85)"
+gradient-gold-crown-logo-template.png,png,tinypng,820016,130742,84.1,0,0.00006,130742,
+idarcio-oliveira.png,png,oxipng-only,212817,196203,7.8,164,0.00000,59215,
+idarcio-oliveira.png,png,quantette+oxipng,212817,,,0,,59215,"skipped: image has alpha, quantette 0.6 is RGB-only"
+idarcio-oliveira.png,png,imagequant+oxipng,212817,48735,77.1,94,0.00105,59215,"148 colors, qSome(86)"
+idarcio-oliveira.png,png,tinypng,212817,59215,72.2,0,0.00074,59215,
+image (1).jpg,jpeg,mozjpeg-q75,4963720,2450927,50.6,1134,0.00217,1978842,
+image (1).jpg,jpeg,mozjpeg-q80,4963720,2964159,40.3,1597,0.00141,1978842,
+image (1).jpg,jpeg,mozjpeg-q85,4963720,3701196,25.4,1649,0.00083,1978842,
+image (1).jpg,jpeg,tinypng,4963720,1978842,60.1,0,0.00335,1978842,
+image (1).png,png,oxipng-only,5043935,4407495,12.6,6133,0.00000,1125858,
+image (1).png,png,quantette+oxipng,5043935,,,0,,1125858,"skipped: image has alpha, quantette 0.6 is RGB-only"
+image (1).png,png,imagequant+oxipng,5043935,1265319,74.9,2373,0.00185,1125858,"256 colors, qSome(72)"
+image (1).png,png,tinypng,5043935,1125858,77.7,0,0.00246,1125858,
+image (10).jpg,jpeg,mozjpeg-q75,2041597,850646,58.3,613,0.00232,646303,
+image (10).jpg,jpeg,mozjpeg-q80,2041597,1071947,47.5,678,0.00160,646303,
+image (10).jpg,jpeg,mozjpeg-q85,2041597,1354583,33.7,830,0.00102,646303,
+image (10).jpg,jpeg,tinypng,2041597,646303,68.3,0,0.00370,646303,
+image (11).jpg,jpeg,mozjpeg-q75,1255814,410518,67.3,270,0.00468,499560,
+image (11).jpg,jpeg,mozjpeg-q80,1255814,546995,56.4,503,0.00349,499560,
+image (11).jpg,jpeg,mozjpeg-q85,1255814,820483,34.7,632,0.00211,499560,
+image (11).jpg,jpeg,tinypng,1255814,499560,60.2,0,0.00413,499560,
+image (12).jpg,jpeg,mozjpeg-q75,2291270,809890,64.7,618,0.00545,969325,
+image (12).jpg,jpeg,mozjpeg-q80,2291270,1042135,54.5,767,0.00428,969325,
+image (12).jpg,jpeg,mozjpeg-q85,2291270,1511176,34.0,889,0.00265,969325,
+image (12).jpg,jpeg,tinypng,2291270,969325,57.7,0,0.00488,969325,
+image (13).jpg,jpeg,mozjpeg-q75,2100367,1125265,46.4,1017,0.00068,928990,
+image (13).jpg,jpeg,mozjpeg-q80,2100367,1335078,36.4,1121,0.00048,928990,
+image (13).jpg,jpeg,mozjpeg-q85,2100367,1561628,25.6,1302,0.00032,928990,
+image (13).jpg,jpeg,tinypng,2100367,928990,55.8,0,0.00119,928990,
+image (14).jpg,jpeg,mozjpeg-q75,1890904,729224,61.4,780,0.00119,561000,
+image (14).jpg,jpeg,mozjpeg-q80,1890904,942016,50.2,853,0.00077,561000,
+image (14).jpg,jpeg,mozjpeg-q85,1890904,1179467,37.6,1293,0.00054,561000,
+image (14).jpg,jpeg,tinypng,1890904,561000,70.3,0,0.00197,561000,
+image (15).jpg,jpeg,mozjpeg-q75,758180,318175,58.0,365,0.00135,245206,
+image (15).jpg,jpeg,mozjpeg-q80,758180,403422,46.8,345,0.00088,245206,
+image (15).jpg,jpeg,mozjpeg-q85,758180,507857,33.0,376,0.00056,245206,
+image (15).jpg,jpeg,tinypng,758180,245206,67.7,0,0.00224,245206,
+image (16).jpg,jpeg,mozjpeg-q75,2224888,1609850,27.6,1046,0.00092,1317603,
+image (16).jpg,jpeg,mozjpeg-q80,2224888,1815702,18.4,1043,0.00056,1317603,
+image (16).jpg,jpeg,mozjpeg-q85,2224888,1950122,12.3,1079,0.00033,1317603,
+image (16).jpg,jpeg,tinypng,2224888,1317603,40.8,0,0.00218,1317603,
+image (17).jpg,jpeg,mozjpeg-q75,458719,164035,64.2,169,0.00180,213965,
+image (17).jpg,jpeg,mozjpeg-q80,458719,206062,55.1,155,0.00135,213965,
+image (17).jpg,jpeg,mozjpeg-q85,458719,263696,42.5,185,0.00097,213965,
+image (17).jpg,jpeg,tinypng,458719,213965,53.4,0,0.00148,213965,
+image (18).jpg,jpeg,mozjpeg-q75,41311,20792,49.7,13,0.00124,24914,
+image (18).jpg,jpeg,mozjpeg-q80,41311,24238,41.3,14,0.00088,24914,
+image (18).jpg,jpeg,mozjpeg-q85,41311,28158,31.8,16,0.00061,24914,
+image (18).jpg,jpeg,tinypng,41311,24914,39.7,0,0.00106,24914,
+image (19).jpg,jpeg,mozjpeg-q75,4182061,1402411,66.5,1115,0.00316,994580,
+image (19).jpg,jpeg,mozjpeg-q80,4182061,1854991,55.6,1260,0.00229,994580,
+image (19).jpg,jpeg,mozjpeg-q85,4182061,2536050,39.4,1627,0.00140,994580,
+image (19).jpg,jpeg,tinypng,4182061,994580,76.2,0,0.00462,994580,
+image (2).jpg,jpeg,mozjpeg-q75,24725,22895,7.4,13,0.00071,23322,
+image (2).jpg,jpeg,mozjpeg-q80,24725,25102,-1.5,12,0.00035,23322,
+image (2).jpg,jpeg,mozjpeg-q85,24725,27248,-10.2,13,0.00030,23322,
+image (2).jpg,jpeg,tinypng,24725,23322,5.7,0,0.00041,23322,
+image (20).jpg,jpeg,mozjpeg-q75,9142484,2243181,75.5,2708,0.00221,1438038,
+image (20).jpg,jpeg,mozjpeg-q80,9142484,3483455,61.9,2917,0.00141,1438038,
+image (20).jpg,jpeg,mozjpeg-q85,9142484,5298356,42.0,4016,0.00094,1438038,
+image (20).jpg,jpeg,tinypng,9142484,1438038,84.3,0,0.00340,1438038,
+image (21).jpg,jpeg,mozjpeg-q75,373322,191541,48.7,122,0.00160,189948,
+image (21).jpg,jpeg,mozjpeg-q80,373322,226057,39.4,140,0.00114,189948,
+image (21).jpg,jpeg,mozjpeg-q85,373322,273872,26.6,168,0.00069,189948,
+image (21).jpg,jpeg,tinypng,373322,189948,49.1,0,0.00173,189948,
+image (3).jpg,jpeg,mozjpeg-q75,956636,269293,71.9,253,0.00159,181799,
+image (3).jpg,jpeg,mozjpeg-q80,956636,382225,60.0,278,0.00109,181799,
+image (3).jpg,jpeg,mozjpeg-q85,956636,528368,44.8,393,0.00075,181799,
+image (3).jpg,jpeg,tinypng,956636,181799,81.0,0,0.00234,181799,
+image (4).jpg,jpeg,mozjpeg-q75,2665344,1185810,55.5,843,0.00264,1029583,
+image (4).jpg,jpeg,mozjpeg-q80,2665344,1470369,44.8,928,0.00167,1029583,
+image (4).jpg,jpeg,mozjpeg-q85,2665344,1930989,27.6,1203,0.00096,1029583,
+image (4).jpg,jpeg,tinypng,2665344,1029583,61.4,0,0.00334,1029583,
+image (5).jpg,jpeg,mozjpeg-q75,48000,14957,68.8,12,0.00227,43137,
+image (5).jpg,jpeg,mozjpeg-q80,48000,20131,58.1,14,0.00158,43137,
+image (5).jpg,jpeg,mozjpeg-q85,48000,26992,43.8,18,0.00101,43137,
+image (5).jpg,jpeg,tinypng,48000,43137,10.1,0,0.00032,43137,
+image (6).jpg,jpeg,mozjpeg-q75,927123,376014,59.4,218,0.00281,466108,
+image (6).jpg,jpeg,mozjpeg-q80,927123,483760,47.8,307,0.00185,466108,
+image (6).jpg,jpeg,mozjpeg-q85,927123,661174,28.7,435,0.00107,466108,
+image (6).jpg,jpeg,tinypng,927123,466108,49.7,0,0.00224,466108,
+image (7).jpg,jpeg,mozjpeg-q75,3567104,2479235,30.5,1795,0.00071,1836759,
+image (7).jpg,jpeg,mozjpeg-q80,3567104,2819795,21.0,1869,0.00026,1836759,
+image (7).jpg,jpeg,mozjpeg-q85,3567104,3095832,13.2,1926,0.00026,1836759,
+image (7).jpg,jpeg,tinypng,3567104,1836759,48.5,0,0.00199,1836759,
+image (8).jpg,jpeg,mozjpeg-q75,2321476,1377048,40.7,745,0.00129,1100807,
+image (8).jpg,jpeg,mozjpeg-q80,2321476,1573457,32.2,783,0.00089,1100807,
+image (8).jpg,jpeg,mozjpeg-q85,2321476,1830763,21.1,987,0.00057,1100807,
+image (8).jpg,jpeg,tinypng,2321476,1100807,52.6,0,0.00225,1100807,
+image (9).jpg,jpeg,mozjpeg-q75,2796807,772021,72.4,1354,0.00162,600943,
+image (9).jpg,jpeg,mozjpeg-q80,2796807,1048425,62.5,1249,0.00125,600943,
+image (9).jpg,jpeg,mozjpeg-q85,2796807,1507112,46.1,1425,0.00090,600943,
+image (9).jpg,jpeg,tinypng,2796807,600943,78.5,0,0.00221,600943,
+kodim01.png,png,oxipng-only,736501,686635,6.8,142,0.00000,285804,
+kodim01.png,png,quantette+oxipng,736501,227052,69.2,93,0.00075,285804,223 colors
+kodim01.png,png,imagequant+oxipng,736501,183180,75.1,127,0.00119,285804,"55 colors, qSome(85)"
+kodim01.png,png,tinypng,736501,285804,61.2,0,0.00040,285804,
+kodim03.png,png,oxipng-only,502888,480737,4.4,255,0.00000,146403,
+kodim03.png,png,quantette+oxipng,502888,162319,67.7,124,0.00117,146403,256 colors
+kodim03.png,png,imagequant+oxipng,502888,138952,72.4,186,0.00101,146403,"193 colors, qSome(88)"
+kodim03.png,png,tinypng,502888,146403,70.9,0,0.00104,146403,
+kodim04.png,png,oxipng-only,637432,622256,2.4,167,0.00000,203557,
+kodim04.png,png,quantette+oxipng,637432,195056,69.4,103,0.00098,203557,256 colors
+kodim04.png,png,imagequant+oxipng,637432,177708,72.1,155,0.00120,203557,"142 colors, qSome(84)"
+kodim04.png,png,tinypng,637432,203557,68.1,0,0.00094,203557,
+kodim05.png,png,oxipng-only,785610,755563,3.8,134,0.00000,251429,
+kodim05.png,png,quantette+oxipng,785610,264122,66.4,85,0.00082,251429,256 colors
+kodim05.png,png,imagequant+oxipng,785610,254234,67.6,170,0.00076,251429,"256 colors, qSome(83)"
+kodim05.png,png,tinypng,785610,251429,68.0,0,0.00116,251429,
+kodim09.png,png,oxipng-only,582899,556743,4.5,176,0.00000,219075,
+kodim09.png,png,quantette+oxipng,582899,176254,69.8,120,0.00101,219075,256 colors
+kodim09.png,png,imagequant+oxipng,582899,157466,73.0,156,0.00108,219075,"88 colors, qSome(86)"
+kodim09.png,png,tinypng,582899,219075,62.4,0,0.00060,219075,
+kodim11.png,png,oxipng-only,621023,596563,3.9,186,0.00000,218925,
+kodim11.png,png,quantette+oxipng,621023,194660,68.7,115,0.00091,218925,256 colors
+kodim11.png,png,imagequant+oxipng,621023,181815,70.7,151,0.00108,218925,"123 colors, qSome(86)"
+kodim11.png,png,tinypng,621023,218925,64.7,0,0.00094,218925,
+kodim14.png,png,oxipng-only,692201,669907,3.2,145,0.00000,237307,
+kodim14.png,png,quantette+oxipng,692201,224491,67.6,98,0.00083,237307,256 colors
+kodim14.png,png,imagequant+oxipng,692201,216195,68.8,160,0.00089,237307,"207 colors, qSome(84)"
+kodim14.png,png,tinypng,692201,237307,65.7,0,0.00099,237307,
+kodim22.png,png,oxipng-only,701970,685308,2.4,145,0.00000,232555,
+kodim22.png,png,quantette+oxipng,701970,226062,67.8,104,0.00093,232555,256 colors
+kodim22.png,png,imagequant+oxipng,701970,228571,67.4,158,0.00124,232555,"202 colors, qSome(83)"
+kodim22.png,png,tinypng,701970,232555,66.9,0,0.00146,232555,
+logo-white.png,png,oxipng-only,85145,66209,22.2,423,0.00000,25784,
+logo-white.png,png,quantette+oxipng,85145,,,0,,25784,"skipped: image has alpha, quantette 0.6 is RGB-only"
+logo-white.png,png,imagequant+oxipng,85145,21168,75.1,225,0.00012,25784,"38 colors, qSome(83)"
+logo-white.png,png,tinypng,85145,25784,69.7,0,0.00001,25784,
+screencapture-chatday-ai-l-logo-01-2026-10-11-22_59_34.png,png,oxipng-only,926039,550217,40.6,861,0.00000,199724,
+screencapture-chatday-ai-l-logo-01-2026-10-11-22_59_34.png,png,quantette+oxipng,926039,378794,59.1,753,0.00039,199724,256 colors
+screencapture-chatday-ai-l-logo-01-2026-10-11-22_59_34.png,png,imagequant+oxipng,926039,170612,81.6,600,0.00069,199724,"77 colors, qSome(87)"
+screencapture-chatday-ai-l-logo-01-2026-10-11-22_59_34.png,png,tinypng,926039,199724,78.4,0,0.00034,199724,
+screencapture-chatday-ai-l-logo-01-2026-10-11-23_00_06.png,png,oxipng-only,695038,349040,49.8,936,0.00000,141407,
+screencapture-chatday-ai-l-logo-01-2026-10-11-23_00_06.png,png,quantette+oxipng,695038,196510,71.7,519,0.00046,141407,256 colors
+screencapture-chatday-ai-l-logo-01-2026-10-11-23_00_06.png,png,imagequant+oxipng,695038,124652,82.1,612,0.00065,141407,"57 colors, qSome(86)"
+screencapture-chatday-ai-l-logo-01-2026-10-11-23_00_06.png,png,tinypng,695038,141407,79.7,0,0.00018,141407,
+screencapture-chatday-ai-l-logo-01-2026-10-11-23_00_20.png,png,oxipng-only,404052,194488,51.9,687,0.00000,83765,
+screencapture-chatday-ai-l-logo-01-2026-10-11-23_00_20.png,png,quantette+oxipng,404052,131250,67.5,485,0.00014,83765,256 colors
+screencapture-chatday-ai-l-logo-01-2026-10-11-23_00_20.png,png,imagequant+oxipng,404052,78073,80.7,510,0.00038,83765,"42 colors, qSome(87)"
+screencapture-chatday-ai-l-logo-01-2026-10-11-23_00_20.png,png,tinypng,404052,83765,79.3,0,0.00006,83765,
+screencapture-chatday-ai-l-logo-01-2026-10-11-23_01_28.png,png,oxipng-only,406453,195036,52.0,535,0.00000,79285,
+screencapture-chatday-ai-l-logo-01-2026-10-11-23_01_28.png,png,quantette+oxipng,406453,145071,64.3,751,0.00013,79285,256 colors
+screencapture-chatday-ai-l-logo-01-2026-10-11-23_01_28.png,png,imagequant+oxipng,406453,74919,81.6,497,0.00037,79285,"45 colors, qSome(86)"
+screencapture-chatday-ai-l-logo-01-2026-10-11-23_01_28.png,png,tinypng,406453,79285,80.5,0,0.00006,79285,
+screencapture-chatday-ai-l-logo-01-2026-10-11-23_01_41.png,png,oxipng-only,492476,256264,48.0,757,0.00000,97265,
+screencapture-chatday-ai-l-logo-01-2026-10-11-23_01_41.png,png,quantette+oxipng,492476,181526,63.1,831,0.00022,97265,256 colors
+screencapture-chatday-ai-l-logo-01-2026-10-11-23_01_41.png,png,imagequant+oxipng,492476,87079,82.3,530,0.00049,97265,"39 colors, qSome(86)"
+screencapture-chatday-ai-l-logo-01-2026-10-11-23_01_41.png,png,tinypng,492476,97265,80.2,0,0.00007,97265,
+screencapture-chatday-ai-l-logo-01-2026-10-11-23_02_01.png,png,oxipng-only,371026,173836,53.1,490,0.00000,71749,
+screencapture-chatday-ai-l-logo-01-2026-10-11-23_02_01.png,png,quantette+oxipng,371026,135940,63.4,618,0.00019,71749,256 colors
+screencapture-chatday-ai-l-logo-01-2026-10-11-23_02_01.png,png,imagequant+oxipng,371026,80244,78.4,504,0.00053,71749,"28 colors, qSome(86)"
+screencapture-chatday-ai-l-logo-01-2026-10-11-23_02_01.png,png,tinypng,371026,71749,80.7,0,0.00006,71749,
+sprite_0001.png,png,oxipng-only,13874,12377,10.8,178,0.00000,10575,
+sprite_0001.png,png,quantette+oxipng,13874,,,0,,10575,"skipped: image has alpha, quantette 0.6 is RGB-only"
+sprite_0001.png,png,imagequant+oxipng,13874,9394,32.3,198,0.00001,10575,"7 colors, qSome(93)"
+sprite_0001.png,png,tinypng,13874,10575,23.8,0,0.00000,10575,
+sprite_0002.png,png,oxipng-only,15594,12620,19.1,171,0.00000,11515,
+sprite_0002.png,png,quantette+oxipng,15594,,,0,,11515,"skipped: image has alpha, quantette 0.6 is RGB-only"
+sprite_0002.png,png,imagequant+oxipng,15594,11092,28.9,176,0.00001,11515,"8 colors, qSome(94)"
+sprite_0002.png,png,tinypng,15594,11515,26.2,0,0.00000,11515,
+sprite_0003.png,png,oxipng-only,19388,16081,17.1,203,0.00000,14761,
+sprite_0003.png,png,quantette+oxipng,19388,,,0,,14761,"skipped: image has alpha, quantette 0.6 is RGB-only"
+sprite_0003.png,png,imagequant+oxipng,19388,13439,30.7,184,0.00001,14761,"8 colors, qSome(92)"
+sprite_0003.png,png,tinypng,19388,14761,23.9,0,0.00000,14761,
+sprite_0004.png,png,oxipng-only,15743,13205,16.1,160,0.00000,11736,
+sprite_0004.png,png,quantette+oxipng,15743,,,0,,11736,"skipped: image has alpha, quantette 0.6 is RGB-only"
+sprite_0004.png,png,imagequant+oxipng,15743,10396,34.0,180,0.00001,11736,"7 colors, qSome(92)"
+sprite_0004.png,png,tinypng,15743,11736,25.5,0,0.00000,11736,
+sprite_0005.png,png,oxipng-only,21797,18052,17.2,244,0.00000,18108,
+sprite_0005.png,png,quantette+oxipng,21797,,,0,,18108,"skipped: image has alpha, quantette 0.6 is RGB-only"
+sprite_0005.png,png,imagequant+oxipng,21797,13980,35.9,216,0.00000,18108,"9 colors, qSome(95)"
+sprite_0005.png,png,tinypng,21797,18108,16.9,0,0.00000,18108,
+sprite_0006.png,png,oxipng-only,23051,17188,25.4,248,0.00000,19919,
+sprite_0006.png,png,quantette+oxipng,23051,,,0,,19919,"skipped: image has alpha, quantette 0.6 is RGB-only"
+sprite_0006.png,png,imagequant+oxipng,23051,11677,49.3,200,0.00001,19919,"8 colors, qSome(92)"
+sprite_0006.png,png,tinypng,23051,19919,13.6,0,0.00000,19919,
+sprite_0007.png,png,oxipng-only,11122,9829,11.6,155,0.00000,9107,
+sprite_0007.png,png,quantette+oxipng,11122,,,0,,9107,"skipped: image has alpha, quantette 0.6 is RGB-only"
+sprite_0007.png,png,imagequant+oxipng,11122,5985,46.2,152,0.00001,9107,"5 colors, qSome(93)"
+sprite_0007.png,png,tinypng,11122,9107,18.1,0,0.00000,9107,
+sprite_0008.png,png,oxipng-only,7127,6343,11.0,115,0.00000,5018,
+sprite_0008.png,png,quantette+oxipng,7127,,,0,,5018,"skipped: image has alpha, quantette 0.6 is RGB-only"
+sprite_0008.png,png,imagequant+oxipng,7127,4472,37.3,147,0.00000,5018,"5 colors, qSome(95)"
+sprite_0008.png,png,tinypng,7127,5018,29.6,0,0.00000,5018,
+sprite_0009.png,png,oxipng-only,17016,16125,5.2,5242,0.00000,14021,
+sprite_0009.png,png,quantette+oxipng,17016,,,0,,14021,"skipped: image has alpha, quantette 0.6 is RGB-only"
+sprite_0009.png,png,imagequant+oxipng,17016,12703,25.3,1127,0.00001,14021,"8 colors, qSome(93)"
+sprite_0009.png,png,tinypng,17016,14021,17.6,0,0.00000,14021,
+sprite_0010.png,png,oxipng-only,22710,20073,11.6,1286,0.00000,18779,
+sprite_0010.png,png,quantette+oxipng,22710,,,0,,18779,"skipped: image has alpha, quantette 0.6 is RGB-only"
+sprite_0010.png,png,imagequant+oxipng,22710,16390,27.8,939,0.00001,18779,"9 colors, qSome(94)"
+sprite_0010.png,png,tinypng,22710,18779,17.3,0,0.00000,18779,
