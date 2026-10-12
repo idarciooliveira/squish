@@ -1,0 +1,21 @@
+[package]
+name = "squish-core"
+description = "Image compression core for squish: bytes in, bytes out"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[features]
+default = ["quant-quantizr"]
+quant-quantizr = ["dep:quantizr"]
+
+[dependencies]
+png.workspace = true
+oxipng.workspace = true
+fast-ssim2.workspace = true
+mozjpeg.workspace = true
+quantizr = { workspace = true, optional = true }
+
+[lints]
+workspace = true

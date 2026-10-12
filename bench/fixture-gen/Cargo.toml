@@ -1,0 +1,7 @@
+[package]
+name = "fixture-gen"
+version = "0.0.0"
+edition = "2024"
+[dependencies]
+png = "0.18"
+mozjpeg = "0.10"
