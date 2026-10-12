@@ -255,7 +255,7 @@ Versions and licenses checked against crates.io and npm on 2026-10-11.
 
 ## 9. Roadmap
 
-### Phase 0: spike and benchmark (2 to 3 days), [ADR-0016](docs/adr/0016-benchmark-before-building.md)
+### Phase 0: spike and benchmark (2 to 3 days), [ADR-0016](docs/adr/0016-benchmark-before-building.md). Done 2026-10-12
 
 - [x] Install `rustup` (stable 1.99.0) and `build-essential` on WSL
 - [x] Install `nasm` (3.01) and `cmake` (4.2.3) on WSL
@@ -263,15 +263,17 @@ Versions and licenses checked against crates.io and npm on 2026-10-11.
 - [x] Run them through TinyPNG once and save the output as the baseline
 - [x] Throwaway program: PNG via quantette + oxipng, and via imagequant + oxipng
 - [x] Confirm quantette handles RGBA with transparency (it doesn't, see ADR-0022)
-- [ ] Throwaway program: JPEG via mozjpeg at quality 75, 80 and 85, plus jpegli if its bindings build
+- [x] Throwaway program: JPEG via mozjpeg at quality 75, 80 and 85, plus jpegli if its bindings build
 - [x] Record bytes, time and SSIM per file
 
-**Exit criteria:** an ADR for each open question (quantizer, JPEG encoder, default values), and a results table committed to `bench/`.
+**Exit criteria:** an ADR for each open question (quantizer, JPEG encoder, default values), and a results table committed to `bench/`. Met by [ADR-0022](docs/adr/0022-quantizr-as-the-png-quantizer.md), [ADR-0023](docs/adr/0023-mozjpeg-confirmed-over-jpegli.md), [ADR-0024](docs/adr/0024-per-file-quality-search-by-default.md) and `bench/results/`.
 
 ### Phase 1: core and CLI for PNG and JPEG (about 1 week)
 
 - [ ] Workspace with `crates/core` and `crates/cli` (ADR-0020)
 - [ ] `detect.rs` with tests for each magic number and for animation
+- [ ] Pick a permissive quality metric and calibrate per-format targets on `bench/` ([ADR-0024](docs/adr/0024-per-file-quality-search-by-default.md))
+- [ ] Per-file quality search shared by all formats, fast enough for batch use
 - [ ] `png.rs`: quantize, indexed encoding, oxipng, lossless fallback
 - [ ] `jpeg.rs`: mozjpeg re-encode, metadata policy, orientation
 - [ ] Size guard, plus a test that output is never bigger than input
@@ -307,7 +309,6 @@ Versions and licenses checked against crates.io and npm on 2026-10-11.
 - [ ] GitHub Actions: tests and release binaries for Linux, macOS and Windows
 - [ ] `Dockerfile` `FROM scratch` containing only the static binary
 - [ ] A fuzz target for `detect` and `compress` (NFR-6)
-- [ ] Automatic quality mode that searches for the lowest quality above an SSIM target
 - [ ] Optional in-browser WASM mode
 - [ ] Optional resizing and format conversion
 - [ ] Tinify-compatible routes, only if a trigger in [ADR-0021](docs/adr/0021-tinify-compatible-api.md) fires
@@ -328,7 +329,7 @@ Versions and licenses checked against crates.io and npm on 2026-10-11.
 | Re-encoding grows already-optimized files | High | Size guard and early skips ([ADR-0011](docs/adr/0011-never-return-a-larger-file.md)) |
 | Colors shift or photos come out rotated after stripping metadata | Medium | Keep ICC and orientation ([ADR-0010](docs/adr/0010-metadata-policy.md)) |
 | C toolchain issues on macOS or Windows | Medium | CI builds all three platforms from Phase 4. mozjpeg builds without `nasm`, just slower. |
-| mozjpeg crate goes stale (last release Feb 2025) | Low | jpegli is evaluated in Phase 0 as the alternative |
+| mozjpeg crate goes stale (last release Feb 2025) | Low | jpegli builds and is the measured fallback, about 6% behind on bytes ([ADR-0023](docs/adr/0023-mozjpeg-confirmed-over-jpegli.md)) |
 | Decompression bombs | Medium | Pixel limit checked from the header before decoding |
 | Hooks bypassed with `--no-verify` | Low | `pre-push` re-checks. A CI check can follow ([ADR-0015](docs/adr/0015-commit-policy.md)). |
 
@@ -337,8 +338,8 @@ Versions and licenses checked against crates.io and npm on 2026-10-11.
 These get answered by an ADR when we reach them.
 
 1. ~~Does quantette handle transparency and match imagequant closely enough?~~ No. quantizr ships instead ([ADR-0022](docs/adr/0022-quantizr-as-the-png-quantizer.md)).
-2. Does jpegli beat mozjpeg enough to be worth its build cost? (Phase 0)
-3. What are the measured default quality values? (Phase 0)
+2. ~~Does jpegli beat mozjpeg enough to be worth its build cost?~~ No ([ADR-0023](docs/adr/0023-mozjpeg-confirmed-over-jpegli.md)).
+3. ~~What are the measured default quality values?~~ A per-file search, with targets calibrated in Phase 1 ([ADR-0024](docs/adr/0024-per-file-quality-search-by-default.md)).
 4. Does the AVIF trigger fire? (Phase 2)
 5. Does the web version go public? (After Phase 3, [ADR-0014](docs/adr/0014-local-first-deployment.md))
 

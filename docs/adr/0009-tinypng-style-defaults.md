@@ -1,6 +1,6 @@
 # ADR-0009: No knobs by default, settings for those who want them
 
-- Status: Accepted
+- Status: Accepted. Fixed `auto` values and the Phase 4 deferral superseded by ADR-0024.
 - Date: 2026-10-11
 
 ## Context

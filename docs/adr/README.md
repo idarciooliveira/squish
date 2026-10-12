@@ -12,7 +12,7 @@ Every decision that shapes squish's code, license or workflow is recorded here (
 | [0006](0006-workspace-and-single-binary.md) | One Cargo workspace, one binary | Accepted | 2026-10-11 |
 | [0007](0007-stateless-server-side-compression.md) | Compress on the server, keep the server stateless | Accepted | 2026-10-11 |
 | [0008](0008-download-all-zip-in-browser.md) | "Download all" builds a STORE zip in the browser | Accepted | 2026-10-11 |
-| [0009](0009-tinypng-style-defaults.md) | No knobs by default, settings for those who want them | Accepted | 2026-10-11 |
+| [0009](0009-tinypng-style-defaults.md) | No knobs by default, settings for those who want them | Partly superseded by ADR-0024 | 2026-10-11 |
 | [0010](0010-metadata-policy.md) | Strip metadata except the color profile and orientation | Accepted | 2026-10-11 |
 | [0011](0011-never-return-a-larger-file.md) | Never return a larger file | Accepted | 2026-10-11 |
 | [0012](0012-avif-deferred.md) | AVIF only in Phase 2, and only if needed | Accepted | 2026-10-11 |
@@ -26,6 +26,8 @@ Every decision that shapes squish's code, license or workflow is recorded here (
 | [0020](0020-repository-layout.md) | Repository layout | Accepted | 2026-10-12 |
 | [0021](0021-tinify-compatible-api.md) | Optional Tinify-compatible API | Deferred | 2026-10-12 |
 | [0022](0022-quantizr-as-the-png-quantizer.md) | quantizr as the PNG quantizer | Accepted | 2026-10-12 |
+| [0023](0023-mozjpeg-confirmed-over-jpegli.md) | mozjpeg confirmed over jpegli | Accepted | 2026-10-12 |
+| [0024](0024-per-file-quality-search-by-default.md) | Per-file quality search is the default | Accepted | 2026-10-12 |
 
 ## Template
 
