@@ -81,13 +81,13 @@ Both use the same core library, so they produce identical results.
 
 ### 4.4 Default settings
 
-`--quality auto` searches per file against a target ([ADR-0024](docs/adr/0024-per-file-quality-search-by-default.md), [ADR-0026](docs/adr/0026-fast-ssim2-as-the-quality-metric.md)). The targets are the Phase 0 grid values. Phase 1 recalibrates them with the real search.
+`--quality auto` searches per file against a target ([ADR-0024](docs/adr/0024-per-file-quality-search-by-default.md), [ADR-0026](docs/adr/0026-fast-ssim2-as-the-quality-metric.md)). Phase 1 recalibrated the targets with the real search.
 
 | Setting | fast | default | max |
 |---|---|---|---|
 | PNG | up to 256 colors, no search | smallest palette with fs2 ≥ 90 | same target, more probes allowed |
 | oxipng preset | 1 | 2 | 5 |
-| JPEG | q66, no search | lowest quality with fs2 ≥ 89.3 | same target, more probes allowed |
+| JPEG | q66, no search | lowest quality with fs2 ≥ 88.7 | same target, more probes allowed |
 | mozjpeg trellis | off | on | on, with scan optimization |
 | WebP method | 2 | 4 | 6 |
 
@@ -278,9 +278,9 @@ The metric work is done: fast-ssim2 at about 1 MP, with starting targets from th
 - [x] Workspace with `crates/core` and `crates/cli` (ADR-0020)
 - [x] `format.rs` with tests for each magic number and for animation
 - [x] `metric.rs`: fast-ssim2 on a ~1 MP box-downscaled copy, alpha composited over white and black
-- [x] `search.rs`: the shared per-file search, JPEG from q66 with interpolation, PNG over the palette size, probe limits per effort
+- [x] `search.rs`: the shared per-file search, JPEG in two stages from q74, PNG over the palette size, probe limits per effort
 - [x] `png.rs`: quantize, indexed encoding, oxipng on the final palette only, lossless fallback
-- [x] `jpeg.rs`: two-stage search: fast basline probes, then trellis probes to land, metadata policy, orientation
+- [x] `jpeg.rs`: two-stage search: fast baseline probes, then trellis probes to land, metadata policy, orientation
 - [x] Size guard, plus a test that output is never bigger than input
 - [x] Benchmark harness in `bench/` that runs `squish-core` over the corpus and checks NFR-1 (ADR-0025) and the search budget in NFR-2, writing the CSV from §10
 - [x] Recalibrate the targets with the real search: JPEG 88.7, PNG 90. The 2 to 4 MP scoring cap above 16 MP does not pay: the numbers are in ADR-0026.

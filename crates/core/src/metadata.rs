@@ -257,8 +257,55 @@ pub(crate) fn jpeg_strip(bytes: &[u8], policy: MetaPolicy) -> Vec<u8> {
             wrote_exif = true;
         }
     }
-    out.extend_from_slice(&bytes[scan_start..]);
+    // Data after the primary image's EOI (MPF secondary images, vendor trailers) can carry
+    // its own Exif, GPS included. Only `KeepAll` keeps it.
+    let end = match policy {
+        MetaPolicy::KeepAll => None,
+        _ => primary_image_end(bytes, scan_start),
+    };
+    out.extend_from_slice(&bytes[scan_start..end.unwrap_or(bytes.len())]);
     out
+}
+
+/// Offset just past the EOI of the image whose first scan starts at `at`. Skips
+/// inter-scan segments by their lengths, so table bytes are never mistaken for EOI.
+/// `None` if the data ends or breaks first.
+fn primary_image_end(bytes: &[u8], mut at: usize) -> Option<usize> {
+    loop {
+        if *bytes.get(at)? != 0xFF {
+            return None;
+        }
+        while *bytes.get(at + 1)? == 0xFF {
+            at += 1;
+        }
+        let marker = *bytes.get(at + 1)?;
+        at += 2;
+        match marker {
+            EOI => return Some(at),
+            0x01 | 0xD0..=0xD7 => {}
+            0x00 => return None,
+            _ => {
+                let len = usize::from(u16::from_be_bytes(bytes.get(at..at + 2)?.try_into().ok()?));
+                if len < 2 {
+                    return None;
+                }
+                at += len;
+                if marker == SOS {
+                    // Entropy-coded data: 0xFF is stuffed as FF 00, and RSTn may appear inline.
+                    loop {
+                        if *bytes.get(at)? != 0xFF {
+                            at += 1;
+                            continue;
+                        }
+                        match *bytes.get(at + 1)? {
+                            0x00 | 0xD0..=0xD7 => at += 2,
+                            _ => break,
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 // PNG
@@ -476,6 +523,28 @@ mod tests {
     fn keep_all_policy_returns_file_unchanged() {
         let file = jpeg(&[app(APP0, b"JFIF\0\x01\x01\0\0\x01\0\x01\0\0"), app(APP1, b"Exif\0\0xx"), app(COM, b"hi")]);
         assert_eq!(jpeg_strip(&file, MetaPolicy::KeepAll), file);
+    }
+
+    #[test]
+    fn strip_drops_trailing_images() {
+        let primary = jpeg(&[app(APP1, b"Exif\0\0gps"), app(0xDB, &[0; 65])]);
+        // A second scan whose DHT payload holds FF D9, as a progressive file might.
+        let mut progressive = primary[..primary.len() - 2].to_vec();
+        progressive.extend_from_slice(&app(0xC4, &[0x10, 0xFF, EOI, 0x00]));
+        progressive.extend_from_slice(&app(SOS, &[1, 1, 0, 0, 0x3F, 0]));
+        progressive.extend_from_slice(&[0xFF, 0x00, 0xFF, 0xD0, 0x56, 0xFF, EOI]);
+        let secondary = jpeg(&[app(APP1, b"Exif\0\0gps")]);
+        for image in [primary, progressive] {
+            let mut file = image.clone();
+            file.extend_from_slice(&secondary);
+            for policy in [MetaPolicy::StripAll, MetaPolicy::StripKeepIcc] {
+                let stripped = jpeg_strip(&file, policy);
+                let scan = parse_jpeg(&image).scan_start.unwrap();
+                assert!(stripped.ends_with(&image[scan..]), "{policy:?}");
+                assert!(!stripped.windows(4).any(|w| w == b"Exif"), "{policy:?}");
+            }
+            assert_eq!(jpeg_strip(&file, MetaPolicy::KeepAll), file);
+        }
     }
 
     #[test]

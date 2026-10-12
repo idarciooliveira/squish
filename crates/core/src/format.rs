@@ -185,7 +185,7 @@ fn avif_brands(bytes: &[u8]) -> Option<([u8; 4], &[u8])> {
         return None;
     }
     let size = be32(bytes, 0)? as usize;
-    let end = size.clamp(16, bytes.len());
+    let end = size.max(16).min(bytes.len());
     let major: [u8; 4] = bytes.get(8..12)?.try_into().ok()?;
     // Bytes 12..16 are the minor version.
     Some((major, bytes.get(16..end)?))
@@ -345,6 +345,10 @@ mod tests {
             let _ = inspect(&full[..n]);
         }
         let full = jpeg_with_sof(3, 3);
+        for n in 0..full.len() {
+            let _ = inspect(&full[..n]);
+        }
+        let full = ftyp(b"avif", &[b"mif1"]);
         for n in 0..full.len() {
             let _ = inspect(&full[..n]);
         }
