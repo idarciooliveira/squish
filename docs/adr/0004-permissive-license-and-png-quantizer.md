@@ -1,6 +1,6 @@
 # ADR-0004: Permissive license, quantette as the PNG quantizer
 
-- Status: Accepted
+- Status: Accepted. Quantizer choice superseded by ADR-0022, license decision stands.
 - Date: 2026-10-11
 
 ## Context

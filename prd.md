@@ -58,8 +58,8 @@ Both use the same core library, so they produce identical results.
 1. Detect the format from the magic bytes. Skip APNG.
 2. Check dimensions from the header against the pixel limit.
 3. Decode to RGBA8.
-4. Quantize through the `Quantizer` trait (quantette, [ADR-0004](docs/adr/0004-permissive-license-and-png-quantizer.md)), with a quality range and Floyd-Steinberg dithering.
-5. If the quantizer can't reach the minimum quality, or can't handle the image (alpha, for example, until Phase 0 confirms support), skip to step 7 with the original.
+4. Quantize through the `Quantizer` trait (quantizr, [ADR-0022](docs/adr/0022-quantizr-as-the-png-quantizer.md)) with Floyd-Steinberg dithering, searching the palette size per file against a quality target.
+5. If the quantizer can't reach the minimum quality, skip to step 7 with the original.
 6. Encode an indexed PNG with the `png` crate.
 7. Optimize with `oxipng::optimize_from_memory` at the preset for the chosen effort.
 8. Apply the size guard.
@@ -180,7 +180,7 @@ Full design, including headers, error bodies and timeout behavior: [ADR-0018](do
 
 | ID | Requirement | Target |
 |---|---|---|
-| NFR-1 | Compression | Within ~5% of TinyPNG's total bytes on the benchmark set, at SSIM at or above TinyPNG's |
+| NFR-1 | Compression | Within ~5% of TinyPNG's total bytes on the benchmark set, with each file's dssim at or below TinyPNG's for that file (differences under 0.0002 count as equal) |
 | NFR-2 | Batch throughput | Near-linear scaling up to the core count |
 | NFR-3 | Binary size | Under 15 MB, stripped release build |
 | NFR-4 | Server idle memory | Under 20 MB RSS |
@@ -210,7 +210,7 @@ One binary, three crates ([ADR-0006](docs/adr/0006-workspace-and-single-binary.m
 
 ```text
  CLI ─────────────┐
-                  ├──> squish-core ──> codec adapters ──> oxipng, quantette, mozjpeg, libwebp
+                  ├──> squish-core ──> codec adapters ──> oxipng, quantizr, mozjpeg, libwebp
  Browser ─> HTTP ─┘    detect -> decode -> optimize -> encode -> size guard
 ```
 
@@ -234,7 +234,7 @@ Versions and licenses checked against crates.io and npm on 2026-10-11.
 | Faster JPEG decoding (optional) | `zune-jpeg` | 0.5 | MIT OR Apache-2.0 OR Zlib | |
 | Indexed PNG writing | `png` | 0.18 | MIT OR Apache-2.0 | |
 | Lossless PNG optimization | `oxipng` | 10.2 | MIT | `optimize_from_memory` confirmed in docs.rs |
-| PNG quantization | `quantette` | 0.6 | MIT OR Apache-2.0 | Floyd-Steinberg confirmed. **Alpha support unverified, Phase 0 gate.** |
+| PNG quantization | `quantizr` | 1.4 | MIT | RGBA and dithering confirmed in Phase 0 ([ADR-0022](docs/adr/0022-quantizr-as-the-png-quantizer.md)) |
 | JPEG encoding | `mozjpeg` / `mozjpeg-sys` | 0.10 / 2.2 | IJG (+ Zlib, BSD-3-Clause in -sys) | Compiles vendored C. Without `nasm` it builds without SIMD, which is slower. Last release Feb 2025. |
 | WebP encoding (Phase 2) | `webp` / `libwebp-sys` | 0.3 / 0.14 | MIT OR Apache-2.0 / MIT | |
 | WebP decoding (Phase 2) | `image-webp` | 0.2 | MIT OR Apache-2.0 | |
@@ -259,12 +259,12 @@ Versions and licenses checked against crates.io and npm on 2026-10-11.
 
 - [x] Install `rustup` (stable 1.99.0) and `build-essential` on WSL
 - [x] Install `nasm` (3.01) and `cmake` (4.2.3) on WSL
-- [ ] Collect ~50 images in `bench/`: photos, screenshots, logos with alpha, illustrations, already-optimized files
-- [ ] Run them through TinyPNG once and save the output as the baseline
-- [ ] Throwaway program: PNG via quantette + oxipng, and via imagequant + oxipng
-- [ ] Confirm quantette handles RGBA with transparency
+- [x] Collect ~50 images in `bench/`: photos, screenshots, logos with alpha, illustrations, already-optimized files
+- [x] Run them through TinyPNG once and save the output as the baseline
+- [x] Throwaway program: PNG via quantette + oxipng, and via imagequant + oxipng
+- [x] Confirm quantette handles RGBA with transparency (it doesn't, see ADR-0022)
 - [ ] Throwaway program: JPEG via mozjpeg at quality 75, 80 and 85, plus jpegli if its bindings build
-- [ ] Record bytes, time and SSIM per file
+- [x] Record bytes, time and SSIM per file
 
 **Exit criteria:** an ADR for each open question (quantizer, JPEG encoder, default values), and a results table committed to `bench/`.
 
@@ -324,7 +324,7 @@ Versions and licenses checked against crates.io and npm on 2026-10-11.
 
 | Risk | Likelihood | Mitigation |
 |---|---|---|
-| quantette can't handle alpha, or its quality is too low | Medium | Phase 0 gate. Fallbacks: our own quantizer, or the commercial imagequant license ([ADR-0004](docs/adr/0004-permissive-license-and-png-quantizer.md)). |
+| quantizr's PNG quality stays below TinyPNG's on about half of `bench/` | High | Accepted for now. Revisit triggers and fallbacks (commercial imagequant, our own quantizer) in [ADR-0022](docs/adr/0022-quantizr-as-the-png-quantizer.md). |
 | Re-encoding grows already-optimized files | High | Size guard and early skips ([ADR-0011](docs/adr/0011-never-return-a-larger-file.md)) |
 | Colors shift or photos come out rotated after stripping metadata | Medium | Keep ICC and orientation ([ADR-0010](docs/adr/0010-metadata-policy.md)) |
 | C toolchain issues on macOS or Windows | Medium | CI builds all three platforms from Phase 4. mozjpeg builds without `nasm`, just slower. |
@@ -336,7 +336,7 @@ Versions and licenses checked against crates.io and npm on 2026-10-11.
 
 These get answered by an ADR when we reach them.
 
-1. Does quantette handle transparency and match imagequant closely enough? (Phase 0)
+1. ~~Does quantette handle transparency and match imagequant closely enough?~~ No. quantizr ships instead ([ADR-0022](docs/adr/0022-quantizr-as-the-png-quantizer.md)).
 2. Does jpegli beat mozjpeg enough to be worth its build cost? (Phase 0)
 3. What are the measured default quality values? (Phase 0)
 4. Does the AVIF trigger fire? (Phase 2)

@@ -7,7 +7,7 @@ Every decision that shapes squish's code, license or workflow is recorded here (
 | [0001](0001-record-architecture-decisions.md) | Record architecture decisions | Accepted | 2026-10-11 |
 | [0002](0002-rust-as-the-language.md) | Rust as the only language | Accepted | 2026-10-11 |
 | [0003](0003-libraries-for-codecs-build-the-rest.md) | Use libraries for codecs, build everything around them | Accepted | 2026-10-11 |
-| [0004](0004-permissive-license-and-png-quantizer.md) | Permissive license, quantette as the PNG quantizer | Accepted | 2026-10-11 |
+| [0004](0004-permissive-license-and-png-quantizer.md) | Permissive license, quantette as the PNG quantizer | Quantizer superseded by ADR-0022 | 2026-10-11 |
 | [0005](0005-mozjpeg-for-jpeg.md) | mozjpeg for JPEG encoding | Accepted | 2026-10-11 |
 | [0006](0006-workspace-and-single-binary.md) | One Cargo workspace, one binary | Accepted | 2026-10-11 |
 | [0007](0007-stateless-server-side-compression.md) | Compress on the server, keep the server stateless | Accepted | 2026-10-11 |
@@ -25,6 +25,7 @@ Every decision that shapes squish's code, license or workflow is recorded here (
 | [0019](0019-cli-design.md) | CLI design | Accepted | 2026-10-12 |
 | [0020](0020-repository-layout.md) | Repository layout | Accepted | 2026-10-12 |
 | [0021](0021-tinify-compatible-api.md) | Optional Tinify-compatible API | Deferred | 2026-10-12 |
+| [0022](0022-quantizr-as-the-png-quantizer.md) | quantizr as the PNG quantizer | Accepted | 2026-10-12 |
 
 ## Template
 
