@@ -1,4 +1,8 @@
-# squish
+<p align="center">
+  <img src="assets/logo.png" alt="squish logo" width="128" height="128">
+</p>
+
+<h1 align="center">squish</h1>
 
 A fast, local image compressor in the spirit of [TinyPNG](https://tinypng.com). Give it PNG, JPEG or WebP files and get smaller files back in the same format. Use it as a CLI, or run `squish serve` to get a web page where you can drop images and download the results one by one or as a zip.
 
