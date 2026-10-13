@@ -140,7 +140,11 @@ fn main() -> Res<()> {
         Ok(g) => {
             let v: Vec<&str> = g.split(':').collect();
             let [lo, hi, step] = v[..] else { return Err("CURVES_WEBP_GRID takes low:high:step".into()) };
-            (lo.parse()?, hi.parse()?, step.parse()?)
+            let (lo, hi, step): (u8, u8, usize) = (lo.parse()?, hi.parse()?, step.parse()?);
+            if lo > hi || hi > 100 || step == 0 {
+                return Err("CURVES_WEBP_GRID needs low <= high <= 100 and a step above 0".into());
+            }
+            (lo, hi, step)
         }
         Err(_) => WEBP_GRID,
     };

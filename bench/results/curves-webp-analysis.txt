@@ -46,31 +46,31 @@ TinyPNG dssim: min 0.00000  median 0.00185  max 0.00555
     sample-photo-3840x2160.webp                          q70
     sample1.webp                                         q70
 
-2c. fs2 @ 1mp targets with a floor on quality (search range floor to q95)
-  q25+ fs2 >= 75             bytes -61.6%  strict  6/12  <=1.25x  7  <=1.5x  9  worst 4.48x  median dssim 0.00176 (1.02x)  kept 1
-  q25+ fs2 >= 78             bytes -52.3%  strict  7/12  <=1.25x  9  <=1.5x  9  worst 4.48x  median dssim 0.00119 (0.53x)  kept 3
-  q25+ fs2 >= 80             bytes -43.9%  strict  9/12  <=1.25x  9  <=1.5x 10  worst 4.48x  median dssim 0.00098 (0.51x)  kept 4
-  q25+ fs2 >= 82             bytes  -3.6%  strict  9/12  <=1.25x 10  <=1.5x 11  worst 3.26x  median dssim 0.00000 (0.00x)  kept 7
-  q25+ fs2 >= 84             bytes  +8.4%  strict 11/12  <=1.25x 11  <=1.5x 11  worst 2.79x  median dssim 0.00000 (0.00x)  kept 7
-  q25+ fs2 >= 88             bytes +25.6%  strict 11/12  <=1.25x 11  <=1.5x 11  worst 1.76x  median dssim 0.00000 (0.00x)  kept 8
-  q55+ fs2 >= 75             bytes -45.0%  strict  6/12  <=1.25x  7  <=1.5x 10  worst 1.76x  median dssim 0.00176 (1.02x)  kept 1
-  q55+ fs2 >= 78             bytes -37.2%  strict  7/12  <=1.25x  9  <=1.5x 10  worst 1.76x  median dssim 0.00119 (0.53x)  kept 3
-  q55+ fs2 >= 80             bytes -32.4%  strict  9/12  <=1.25x  9  <=1.5x 10  worst 1.76x  median dssim 0.00088 (0.51x)  kept 4
-  q55+ fs2 >= 82             bytes  +3.7%  strict  9/12  <=1.25x 10  <=1.5x 11  worst 1.76x  median dssim 0.00000 (0.00x)  kept 7
-  q55+ fs2 >= 84             bytes +13.4%  strict 11/12  <=1.25x 11  <=1.5x 11  worst 1.76x  median dssim 0.00000 (0.00x)  kept 7
-  q55+ fs2 >= 88             bytes +25.6%  strict 11/12  <=1.25x 11  <=1.5x 11  worst 1.76x  median dssim 0.00000 (0.00x)  kept 8
-  q60+ fs2 >= 75             bytes -38.7%  strict  6/12  <=1.25x  7  <=1.5x 11  worst 1.52x  median dssim 0.00176 (1.02x)  kept 2
-  q60+ fs2 >= 78             bytes -30.9%  strict  7/12  <=1.25x  9  <=1.5x 11  worst 1.52x  median dssim 0.00119 (0.53x)  kept 4
-  q60+ fs2 >= 80             bytes -30.8%  strict  9/12  <=1.25x  9  <=1.5x 11  worst 1.52x  median dssim 0.00083 (0.49x)  kept 5
-  q60+ fs2 >= 82             bytes  +5.3%  strict  9/12  <=1.25x 10  <=1.5x 11  worst 1.52x  median dssim 0.00000 (0.00x)  kept 8
-  q60+ fs2 >= 84             bytes +15.0%  strict 11/12  <=1.25x 11  <=1.5x 11  worst 1.52x  median dssim 0.00000 (0.00x)  kept 8
-  q60+ fs2 >= 88             bytes +27.3%  strict 11/12  <=1.25x 11  <=1.5x 11  worst 1.52x  median dssim 0.00000 (0.00x)  kept 9
-  q65+ fs2 >= 75             bytes -26.1%  strict  6/12  <=1.25x 10  <=1.5x 12  worst 1.28x  median dssim 0.00160 (1.02x)  kept 2
-  q65+ fs2 >= 78             bytes -18.4%  strict  7/12  <=1.25x 10  <=1.5x 12  worst 1.28x  median dssim 0.00119 (0.53x)  kept 4
-  q65+ fs2 >= 80             bytes -18.3%  strict  9/12  <=1.25x 10  <=1.5x 12  worst 1.28x  median dssim 0.00079 (0.49x)  kept 5
-  q65+ fs2 >= 82             bytes  +6.7%  strict  9/12  <=1.25x 11  <=1.5x 12  worst 1.28x  median dssim 0.00000 (0.00x)  kept 8
-  q65+ fs2 >= 84             bytes +16.4%  strict 11/12  <=1.25x 11  <=1.5x 12  worst 1.28x  median dssim 0.00000 (0.00x)  kept 8
-  q65+ fs2 >= 88             bytes +28.7%  strict 11/12  <=1.25x 11  <=1.5x 12  worst 1.28x  median dssim 0.00000 (0.00x)  kept 9
+2c. fs2 @ 1mp targets with a floor on quality (search range floor to the grid's top)
+  q25-q95 fs2 >= 75          bytes -61.6%  strict  6/12  <=1.25x  7  <=1.5x  9  worst 4.48x  median dssim 0.00176 (1.02x)  kept 1
+  q25-q95 fs2 >= 78          bytes -52.3%  strict  7/12  <=1.25x  9  <=1.5x  9  worst 4.48x  median dssim 0.00119 (0.53x)  kept 3
+  q25-q95 fs2 >= 80          bytes -43.9%  strict  9/12  <=1.25x  9  <=1.5x 10  worst 4.48x  median dssim 0.00098 (0.51x)  kept 4
+  q25-q95 fs2 >= 82          bytes  -3.6%  strict  9/12  <=1.25x 10  <=1.5x 11  worst 3.26x  median dssim 0.00000 (0.00x)  kept 7
+  q25-q95 fs2 >= 84          bytes  +8.4%  strict 11/12  <=1.25x 11  <=1.5x 11  worst 2.79x  median dssim 0.00000 (0.00x)  kept 7
+  q25-q95 fs2 >= 88          bytes +25.6%  strict 11/12  <=1.25x 11  <=1.5x 11  worst 1.76x  median dssim 0.00000 (0.00x)  kept 8
+  q55-q95 fs2 >= 75          bytes -45.0%  strict  6/12  <=1.25x  7  <=1.5x 10  worst 1.76x  median dssim 0.00176 (1.02x)  kept 1
+  q55-q95 fs2 >= 78          bytes -37.2%  strict  7/12  <=1.25x  9  <=1.5x 10  worst 1.76x  median dssim 0.00119 (0.53x)  kept 3
+  q55-q95 fs2 >= 80          bytes -32.4%  strict  9/12  <=1.25x  9  <=1.5x 10  worst 1.76x  median dssim 0.00088 (0.51x)  kept 4
+  q55-q95 fs2 >= 82          bytes  +3.7%  strict  9/12  <=1.25x 10  <=1.5x 11  worst 1.76x  median dssim 0.00000 (0.00x)  kept 7
+  q55-q95 fs2 >= 84          bytes +13.4%  strict 11/12  <=1.25x 11  <=1.5x 11  worst 1.76x  median dssim 0.00000 (0.00x)  kept 7
+  q55-q95 fs2 >= 88          bytes +25.6%  strict 11/12  <=1.25x 11  <=1.5x 11  worst 1.76x  median dssim 0.00000 (0.00x)  kept 8
+  q60-q95 fs2 >= 75          bytes -38.7%  strict  6/12  <=1.25x  7  <=1.5x 11  worst 1.52x  median dssim 0.00176 (1.02x)  kept 2
+  q60-q95 fs2 >= 78          bytes -30.9%  strict  7/12  <=1.25x  9  <=1.5x 11  worst 1.52x  median dssim 0.00119 (0.53x)  kept 4
+  q60-q95 fs2 >= 80          bytes -30.8%  strict  9/12  <=1.25x  9  <=1.5x 11  worst 1.52x  median dssim 0.00083 (0.49x)  kept 5
+  q60-q95 fs2 >= 82          bytes  +5.3%  strict  9/12  <=1.25x 10  <=1.5x 11  worst 1.52x  median dssim 0.00000 (0.00x)  kept 8
+  q60-q95 fs2 >= 84          bytes +15.0%  strict 11/12  <=1.25x 11  <=1.5x 11  worst 1.52x  median dssim 0.00000 (0.00x)  kept 8
+  q60-q95 fs2 >= 88          bytes +27.3%  strict 11/12  <=1.25x 11  <=1.5x 11  worst 1.52x  median dssim 0.00000 (0.00x)  kept 9
+  q65-q95 fs2 >= 75          bytes -26.1%  strict  6/12  <=1.25x 10  <=1.5x 12  worst 1.28x  median dssim 0.00160 (1.02x)  kept 2
+  q65-q95 fs2 >= 78          bytes -18.4%  strict  7/12  <=1.25x 10  <=1.5x 12  worst 1.28x  median dssim 0.00119 (0.53x)  kept 4
+  q65-q95 fs2 >= 80          bytes -18.3%  strict  9/12  <=1.25x 10  <=1.5x 12  worst 1.28x  median dssim 0.00079 (0.49x)  kept 5
+  q65-q95 fs2 >= 82          bytes  +6.7%  strict  9/12  <=1.25x 11  <=1.5x 12  worst 1.28x  median dssim 0.00000 (0.00x)  kept 8
+  q65-q95 fs2 >= 84          bytes +16.4%  strict 11/12  <=1.25x 11  <=1.5x 12  worst 1.28x  median dssim 0.00000 (0.00x)  kept 8
+  q65-q95 fs2 >= 88          bytes +28.7%  strict 11/12  <=1.25x 11  <=1.5x 12  worst 1.28x  median dssim 0.00000 (0.00x)  kept 9
 
 3. Candidate metrics with one fixed target
 

@@ -56,7 +56,7 @@ fs2 rises 0.35 to 0.6 points per quality step between q60 and q90 (median per fi
 5. **Metadata (amends ADR-0010).** WebP is a RIFF container, so the policy runs on chunks without touching pixel data, as `metadata.rs` does for JPEG segments and PNG chunks.
    - `strip-keep-icc`, the default: keep `ICCP`. Keep the orientation by writing a minimal `EXIF` chunk (`metadata::minimal_exif`). Drop every other `EXIF` field, `XMP ` and unknown chunks.
    - `strip-all`: drop `ICCP` and `EXIF` as well.
-   - `keep-all`: carry `ICCP`, `EXIF` and `XMP ` through unchanged.
+   - `keep-all`: carry `ICCP`, `EXIF`, `XMP ` and unknown chunks through unchanged, as `keep-all` does for PNG. Unknown chunks keep their relative order, within the container order below.
    - The `webp` crate encodes bitstreams only, so the container is assembled in `squish-core`. A file that needs nothing extra is a plain `VP8 ` or `VP8L` file. Otherwise it gets a `VP8X` header with the flags and canvas size set, `ICCP` first, `ALPH` before `VP8 `, and `EXIF` last.
 6. **Size guard** as in ADR-0011, on whole files.
 7. **Harness.** `bench/harness` takes `--only webp`, `--webp-target` and reports lossless sources as `webp-lossless`. Its plain encode is q71, so its search-cost ratio is 1x for WebP until a search exists. `--webp-target` is there for re-testing the search.

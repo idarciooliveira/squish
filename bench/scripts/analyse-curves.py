@@ -213,12 +213,14 @@ def main():
             for n, q in sizes:
                 print(f"    {n:<52} {q or 'no match'}")
 
-            print("\n2c. fs2 @ 1mp targets with a floor on quality (search range floor to q95)")
-            for floor in (25, 55, 60, 65):
+            print("\n2c. fs2 @ 1mp targets with a floor on quality (search range floor to the grid's top)")
+            lo, hi = int(qs[0][1:]), int(qs[-1][1:])
+            # Floors at or below the grid's bottom all search the same range, so print it once.
+            for floor in sorted({max(f, lo) for f in (25, 55, 60, 65) if f < hi}):
                 for t in (75, 78, 80, 82, 84, 88):
                     ok = lambda p, t=t: p.get(("fs2", "1mp"), -math.inf) >= t
                     sel = {n: pick(from_floor(files[n], floor), ok)[1] for n in names}
-                    print(fmt_row(f"q{floor}+ fs2 >= {t}", summarise(files, sel)))
+                    print(fmt_row(f"q{floor}-q{hi} fs2 >= {t}", summarise(files, sel)))
 
         print("\n3. Candidate metrics with one fixed target")
         scales = sorted({k[1] for n in names for p in files[n]["points"].values() for k in p if isinstance(k, tuple) and k[0] == "fs2"})
