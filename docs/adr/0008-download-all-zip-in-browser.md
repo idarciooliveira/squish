@@ -11,7 +11,7 @@ Compressed images don't shrink further under deflate. Deflating them again insid
 
 ## Decision
 
-The browser builds the zip with `fflate` or `client-zip`, in STORE mode (no compression). The CLI's `--zip` option does the same with the `zip` crate.
+The browser builds the zip with `fflate` or `client-zip`, in STORE mode (no compression). Phase 3 picked client-zip 2.5.1. It is about 6 KB and only writes STORE entries. The CLI's `--zip` option does the same with the `zip` crate.
 
 ## Consequences
 

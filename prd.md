@@ -3,9 +3,9 @@
 | | |
 |---|---|
 | Owner | Idarcio Oliveira (@idarciooliveira) |
-| Status | Phase 1 done. Phase 2 next. |
-| Last updated | 2026-10-12 |
-| Decisions | [`docs/adr/`](docs/adr/README.md) (ADR-0001 to ADR-0027) |
+| Status | Phase 1 done. Phase 2 in progress: the WebP codec is still open. Phase 3 (web version) built. |
+| Last updated | 2026-10-13 |
+| Decisions | [`docs/adr/`](docs/adr/README.md) (ADR-0001 to ADR-0028) |
 
 ## 1. Summary
 
@@ -251,7 +251,7 @@ Versions and licenses checked against crates.io and npm on 2026-10-11.
 | Ctrl-C handling (CLI) | `ctrlc` | 3.5 | MIT OR Apache-2.0 | |
 | Glob expansion (CLI) | `glob` | 0.3 | MIT OR Apache-2.0 | For patterns the shell left unexpanded, as on Windows |
 | Zip (CLI) | `zip` | 9.0 | MIT | STORE mode |
-| Zip (browser) | `client-zip` or `fflate` | 2.5 / 0.8 | MIT | Vendored into `web/` |
+| Zip (browser) | `client-zip` | 2.5.1 | MIT | Vendored unmodified as `web/vendor/client-zip.js`. It only writes STORE entries. |
 
 **Benchmark only, never linked into squish:** `imagequant` 4.4 (GPL-3.0-or-later, with a commercial license available) and `dssim` 3.5 (AGPL-3.0, with a commercial license available).
 
@@ -308,13 +308,15 @@ The metric work is done: fast-ssim2 at about 1 MP, with starting targets from th
 
 ### Phase 3: web version (about 1 week)
 
-- [ ] `server` crate: axum routes, limits, semaphore, timeout, error codes
-- [ ] `web/`: drop zone, queue, rows, per-file download, running total
-- [ ] "Download all" with a vendored zip library
-- [ ] Embed with rust-embed, add the `squish serve` subcommand
-- [ ] Manual test with 50 mixed files, plus an integration test for each route
+- [x] `server` crate: axum routes, limits, semaphore, timeout, error codes
+- [x] `web/`: drop zone, queue, rows, per-file download, running total
+- [x] "Download all" with a vendored zip library (client-zip 2.5.1)
+- [x] Embed with rust-embed, add the `squish serve` subcommand
+- [x] Manual test with 50 mixed files, plus an integration test for each route (`crates/server/tests/routes.rs`)
 
 **Exit criteria:** the full flow works in Chrome and Firefox. The server stays under the NFR-4 memory target at idle.
+
+Status on 2026-10-13: the full flow works in Chromium with 50 mixed files (36 compressed, 1 already optimized, 13 unsupported because WebP isn't built yet, plus an APNG and a text file), and a 37-entry STORE zip downloaded. With `--jobs 1`, 10 files went through after 12 `429` retries. Idle RSS is about 7 MB, under NFR-4's 20 MB. Firefox is still to check.
 
 ### Phase 4: ship and extras (open-ended)
 

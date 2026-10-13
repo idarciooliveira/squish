@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>squish</title>
+  <link rel="icon" href="logo.png">
+  <link rel="stylesheet" href="style.css">
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <header>
+    <h1><img src="logo.png" alt="" width="32" height="32"> squish</h1>
+    <p id="total" aria-live="polite"></p>
+  </header>
+
+  <main>
+    <section id="drop" tabindex="0" aria-label="Drop images here or press Enter to pick files">
+      <p class="lead">Drop PNG or JPEG images here</p>
+      <p class="sub">
+        or <button type="button" id="pick-files">pick files</button>
+        or <button type="button" id="pick-folder">a folder</button>
+      </p>
+      <p class="sub" id="limits"></p>
+      <input type="file" id="files" multiple hidden>
+      <input type="file" id="folder" webkitdirectory hidden>
+    </section>
+
+    <details id="settings">
+      <summary>Settings</summary>
+      <div class="fields">
+        <label>Quality
+          <select id="quality">
+            <option value="auto">auto</option>
+            <option value="lossless">lossless</option>
+            <option value="fixed">fixed</option>
+          </select>
+        </label>
+        <label id="fixed-label" hidden>Value
+          <input type="number" id="fixed" min="0" max="100" value="75">
+        </label>
+        <label>Effort
+          <select id="effort">
+            <option value="fast">fast</option>
+            <option value="default" selected>default</option>
+            <option value="max">max</option>
+          </select>
+        </label>
+      </div>
+      <p class="sub">Changes apply to files added after them.</p>
+    </details>
+
+    <div id="actions" hidden>
+      <button type="button" id="download-all" disabled>Download all</button>
+      <button type="button" id="clear">Clear</button>
+    </div>
+
+    <ul id="rows"></ul>
+  </main>
+
+  <footer><span id="version"></span></footer>
+
+  <template id="row">
+    <li class="row">
+      <img class="thumb" alt="">
+      <span class="name"></span>
+      <span class="sizes"></span>
+      <span class="saved"></span>
+      <span class="status"></span>
+      <a class="download" hidden>Download</a>
+    </li>
+  </template>
+</body>
+</html>

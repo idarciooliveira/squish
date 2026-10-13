@@ -55,6 +55,7 @@ Errors return JSON with a code from ADR-0017 or one of the HTTP-only codes below
 |---|---|---|
 | `400` | `empty_body` | Body has zero bytes |
 | `400` | `invalid_option` | A query parameter doesn't parse. `message` names it. |
+| `400` | `read_failed` | The connection failed while the body was being read. Added in Phase 3. |
 | `413` | `body_too_large` | Body above `--max-body` (default 25 MB) |
 | `413` | `too_many_pixels` | Header dimensions above `--max-pixels` (default 50 MP) |
 | `415` | `unsupported_format` | Unknown or not compiled in |
@@ -67,6 +68,7 @@ Errors return JSON with a code from ADR-0017 or one of the HTTP-only codes below
 ### Concurrency and timeouts
 
 - A semaphore with one permit per job slot (`--jobs`, default: core count). The handler calls `try_acquire`. No permit means an immediate `429`, not a queue.
+- Before reading the body, the handler answers `429` if no permit is free, so a busy server doesn't take a whole upload only to refuse it. It runs the header checks (format, animation, pixel limit) before taking a permit, so files that are going to fail never hold a slot.
 - The permit moves into the `spawn_blocking` closure and is released only when the work actually finishes. A blocking task can't be cancelled, so after a `504` the job keeps its slot until it's done. Timeouts can't be used to start more jobs than there are cores.
 
 ### `GET /api/info`

@@ -12,6 +12,7 @@ repository = "https://github.com/idarciooliveira/squish"
 
 [workspace.dependencies]
 squish-core = { path = "crates/core" }
+squish-server = { path = "crates/server" }
 
 # codecs and metric (versions and licenses: prd.md section 8)
 png = "0.18"
@@ -20,8 +21,15 @@ quantizr = "1.4"
 fast-ssim2 = "0.9"
 mozjpeg = "0.10"
 
+# server
+axum = { version = "0.8", default-features = false, features = ["http1", "query", "tokio"] }
+tokio = { version = "1.53", features = ["rt-multi-thread", "net", "time", "signal", "macros"] }
+http-body-util = "0.1"
+rust-embed = "8.13"
+tower = { version = "0.5", features = ["util"] }
+
 # cli
-clap = { version = "4.6", features = ["derive"] }
+clap = { version = "4.6", features = ["derive", "env"] }
 rayon = "1.12"
 indicatif = "0.18"
 ctrlc = "3.5"

@@ -4,6 +4,7 @@ mod archive;
 mod inputs;
 mod plan;
 mod run;
+mod serve;
 mod summary;
 mod write;
 
@@ -23,12 +24,17 @@ use crate::plan::Mode;
 use crate::run::{Job, Outcome, Status, compress_bytes};
 use crate::summary::Summary;
 
-const USAGE: u8 = 2;
+pub(crate) const USAGE: u8 = 2;
 const INTERRUPTED: u8 = 130;
 const OUTPUT: &str = "Output (default writes name.min.ext next to the input)";
 
 #[derive(Parser, Debug)]
-#[command(name = "squish", version, about = "Compress PNG and JPEG images, keeping their format")]
+#[command(
+    name = "squish",
+    version,
+    about = "Compress PNG and JPEG images, keeping their format",
+    after_help = "Run `squish serve --help` for the web UI."
+)]
 struct Cli {
     /// Files, folders, globs, or - to read one image from stdin and write it to stdout
     #[arg(required = true, value_name = "PATH")]
@@ -91,7 +97,7 @@ struct Cli {
     quiet: bool,
 }
 
-fn parse_megapixels(s: &str) -> Result<u64, String> {
+pub(crate) fn parse_megapixels(s: &str) -> Result<u64, String> {
     match s.trim().parse::<f64>() {
         Ok(mp) if mp.is_finite() && mp > 0.0 => Ok((mp * 1e6).round() as u64),
         _ => Err(format!("invalid megapixels {s:?}, expected a positive number such as 50 or 0.5")),
@@ -111,10 +117,9 @@ impl Cli {
 }
 
 fn main() -> ExitCode {
-    // `serve` is reserved (ADR-0019). The web version arrives in Phase 3.
+    // `serve` is reserved (ADR-0019). To compress a file named serve, write ./serve.
     if std::env::args_os().nth(1).is_some_and(|a| a == "serve") {
-        eprintln!("squish: `squish serve` is not built yet. To compress a file named serve, write ./serve");
-        return ExitCode::from(USAGE);
+        return serve::main(std::env::args_os().skip(1));
     }
     let cli = Cli::parse();
     if cli.paths.iter().any(|p| p == Path::new("-")) {
