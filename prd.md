@@ -67,7 +67,7 @@ Both use the same core library, so they produce identical results.
 ### 4.2 JPEG pipeline
 
 1. Detect the format (`FF D8 FF`) and read dimensions, estimated quality, ICC profile and EXIF orientation.
-2. Decode once. Make the ~1 MP scoring copy and the fs2 reference from it.
+2. Decode once. Make the ~1 MP scoring copy and the fs2 reference from it. CMYK and YCCK files skip to step 4 without re-encoding, since an RGB re-encode would leave their CMYK ICC profile on RGB pixels.
 3. Search mozjpeg quality per file for the lowest one that scores fs2 ≥ 88.7, in two stages ([ADR-0026](docs/adr/0026-fast-ssim2-as-the-quality-metric.md)): cheap baseline probes from q74, then trellis probes within three points of where stage 1 landed. Encode the result progressive, with 4:2:0 chroma subsampling. Encode results bigger than the input hand the size guard the strongest fitting probe instead of the input.
 4. Apply the metadata policy: keep ICC and orientation, drop the rest ([ADR-0010](docs/adr/0010-metadata-policy.md)).
 5. Apply the size guard.
@@ -315,7 +315,7 @@ The metric work is done: fast-ssim2 at about 1 MP, with starting targets from th
 
 ### Phase 4: ship and extras (open-ended)
 
-- [ ] GitHub Actions: tests and release binaries for Linux, macOS and Windows
+- [ ] GitHub Actions: release binaries for Linux, macOS and Windows. Fmt, clippy and tests already run on Linux for every push and PR (`.github/workflows/ci.yml`).
 - [ ] `Dockerfile` `FROM scratch` containing only the static binary
 - [ ] A fuzz target for `detect` and `compress` (NFR-6)
 - [ ] Optional in-browser WASM mode

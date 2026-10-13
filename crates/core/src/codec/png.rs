@@ -137,12 +137,17 @@ fn lossless(bytes: &[u8], options: &Options) -> Result<Encoded, Error> {
 }
 
 pub(crate) fn compress(bytes: &[u8], options: &Options) -> Result<Encoded, Error> {
+    compress_with(bytes, options, quant::default_quantizer())
+}
+
+/// `compress` with the quantizer passed in, so tests can run without one or with one that fails.
+fn compress_with(bytes: &[u8], options: &Options, quantizer: Option<&dyn Quantizer>) -> Result<Encoded, Error> {
     // An 8-bit palette can't hold PQ or HLG levels, and the cICP tag would stay on the
     // banded result, so HDR files only get the lossless steps.
     if options.quality == Quality::Lossless || metadata::png_is_hdr(bytes) {
         return lossless(bytes, options);
     }
-    let Some(quantizer) = quant::default_quantizer() else {
+    let Some(quantizer) = quantizer else {
         return lossless(bytes, options);
     };
     match lossy(bytes, options, quantizer) {
@@ -279,5 +284,25 @@ mod tests {
         assert_eq!(colors_for_quality(0), 2);
         assert_eq!(colors_for_quality(50), 128);
         assert_eq!(colors_for_quality(100), 256);
+    }
+
+    struct Failing;
+
+    impl Quantizer for Failing {
+        fn quantize(&self, _: &[u8], _: u32, _: u32, _: u16, _: f32) -> Option<Quantized> {
+            None
+        }
+    }
+
+    #[test]
+    fn without_a_working_quantizer_the_original_goes_through_losslessly() {
+        let input = include_bytes!("../../tests/fixtures/photo-rgb.png");
+        let options = Options::default();
+        let exact = lossless(input, &options).unwrap().bytes;
+        for quantizer in [None, Some(&Failing as &dyn Quantizer)] {
+            let out = compress_with(input, &options, quantizer).unwrap();
+            assert_eq!(out.bytes, exact, "with a quantizer: {}", quantizer.is_some());
+            assert_eq!(out.report, Report::default());
+        }
     }
 }

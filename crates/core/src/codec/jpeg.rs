@@ -134,8 +134,15 @@ pub(crate) fn decode_rgba(bytes: &[u8]) -> Result<(Vec<u8>, u32, u32), Error> {
     Ok((rgba, raw.width, raw.height))
 }
 
+/// True for CMYK and YCCK files. The search decodes to RGB, and re-encoding as RGB would
+/// leave a CMYK ICC profile on RGB pixels, so these only get the lossless steps.
+fn is_cmyk(bytes: &[u8]) -> bool {
+    guarded(|| Ok(Decompress::new_mem(bytes)?.color_space()))
+        .is_ok_and(|c| matches!(c, ColorSpace::JCS_CMYK | ColorSpace::JCS_YCCK))
+}
+
 pub(crate) fn compress(bytes: &[u8], options: &Options) -> Result<Encoded, Error> {
-    if options.quality == Quality::Lossless {
+    if options.quality == Quality::Lossless || is_cmyk(bytes) {
         let stripped = metadata::jpeg_strip(bytes, options.metadata);
         return Ok(Encoded { bytes: stripped, report: Report::default() });
     }

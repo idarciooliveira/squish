@@ -1,6 +1,6 @@
 //! End-to-end behavior of `compress` on the committed fixtures.
 
-use squish_core::{Effort, Error, Format, MetaPolicy, Options, Quality, compress, detect};
+use squish_core::{Effort, Error, Format, MetaPolicy, Options, Quality, compress, detect, score};
 
 const FIXTURES: &[&str] = &[
     "photo-rgb.png",
@@ -120,6 +120,55 @@ fn a_wasteful_jpeg_shrinks_and_reports_what_it_chose() {
 }
 
 #[test]
+fn every_reported_score_is_the_score_of_the_output() {
+    // `--effort max` re-encodes after scoring, and a JPEG search can ship a probe other
+    // than the winner. The report has to describe the bytes that ship either way.
+    for name in FIXTURES {
+        let input = fixture(name);
+        for effort in [Effort::Default, Effort::Max] {
+            let out = compress(&input, &options(Quality::Auto, effort)).unwrap();
+            let Some(reported) = out.report.score else { continue };
+            if out.kept_original {
+                continue;
+            }
+            let measured = score(&input, &out.bytes).unwrap();
+            assert!((measured - reported).abs() < 1e-6, "{name} {effort:?}: reported {reported}, measured {measured}");
+        }
+    }
+}
+
+/// The pixels of `photo.jpg` encoded by mozjpeg at quality `q`, already trellis-optimized.
+fn mozjpeg_at(q: f32) -> Vec<u8> {
+    let photo = decode(&fixture("photo.jpg"));
+    let mut c = mozjpeg::Compress::new(mozjpeg::ColorSpace::JCS_RGB);
+    c.set_size(photo.width as usize, photo.height as usize);
+    c.set_quality(q);
+    let mut started = c.start_compress(Vec::new()).unwrap();
+    started.write_scanlines(&photo.pixels).unwrap();
+    started.finish().unwrap()
+}
+
+#[test]
+fn a_jpeg_whose_winner_is_too_big_ships_the_best_probe_that_fits() {
+    // At q95 the trellis winner comes out bigger than this already-optimized input, and
+    // only a probe below the target fits. That probe ships instead of the input.
+    let input = mozjpeg_at(95.0);
+    let out = compress(&input, &Options::default()).unwrap();
+    let r = &out.report;
+    assert!(!out.kept_original && out.bytes.len() < input.len(), "{} -> {}, {r:?}", input.len(), out.bytes.len());
+    assert!(r.score.unwrap() < r.target.unwrap(), "expected the fallback probe, got {r:?}");
+    assert!(r.setting.unwrap() < 95, "{r:?}");
+}
+
+#[test]
+fn a_jpeg_that_nothing_beats_is_kept() {
+    let input = mozjpeg_at(60.0);
+    let out = compress(&input, &Options::default()).unwrap();
+    assert!(out.kept_original, "{:?}", out.report);
+    assert_eq!(out.bytes, input);
+}
+
+#[test]
 fn effort_max_is_not_bigger_than_default() {
     let input = fixture("photo.jpg");
     let default = compress(&input, &options(Quality::Auto, Effort::Default)).unwrap();
@@ -184,6 +233,18 @@ fn png_photo_gets_much_smaller_and_reports_its_palette() {
     assert!((2..=256).contains(&colors), "{:?}", out.report);
     // The output really is a palette image: color type 3 in IHDR.
     assert_eq!(out.bytes[25], 3);
+}
+
+#[test]
+fn png_search_meets_the_target_below_256_colors() {
+    for name in ["photo-gray.png", "logo-alpha.png", "palette.png"] {
+        let r = compress(&fixture(name), &Options::default()).unwrap().report;
+        assert!(r.score.unwrap() >= r.target.unwrap(), "{name}: {r:?}");
+        assert!(r.setting.unwrap() < 256, "{name}: {r:?}");
+    }
+    // Noisy color photos miss even at 256 colors (ADR-0022). The search must stop at the top.
+    let r = compress(&fixture("photo-rgb.png"), &Options::default()).unwrap().report;
+    assert_eq!((r.setting, r.probes), (Some(256), 1), "{r:?}");
 }
 
 #[test]
@@ -315,6 +376,146 @@ fn png_that_misses_at_256_colors_takes_lossless_when_smaller() {
                 "{label}: lossless output must keep every pixel"
             );
             assert_eq!((out.report.setting, out.report.score), (None, Some(100.0)), "{label}: {:?}", out.report);
+        }
+    }
+}
+
+/// CRC-32 as PNG chunks use it.
+fn crc32(bytes: &[u8]) -> u32 {
+    let mut crc = !0u32;
+    for &b in bytes {
+        crc ^= u32::from(b);
+        for _ in 0..8 {
+            crc = if crc & 1 == 1 { (crc >> 1) ^ 0xEDB8_8320 } else { crc >> 1 };
+        }
+    }
+    !crc
+}
+
+fn png_chunk(kind: &[u8; 4], data: &[u8]) -> Vec<u8> {
+    let body = [&kind[..], data].concat();
+    [&(data.len() as u32).to_be_bytes()[..], &body, &crc32(&body).to_be_bytes()].concat()
+}
+
+#[test]
+fn hdr_png_only_gets_the_lossless_steps() {
+    // cICP with BT.2020 primaries and the PQ transfer function.
+    let photo = decode(&fixture("photo-rgb.png"));
+    let rgb: Vec<u8> = photo.pixels.chunks(4).flat_map(|p| [p[0], p[1], p[2]]).collect();
+    let plain = rgb_png(photo.width, photo.height, &rgb, |_| {});
+    let input = [&plain[..33], &png_chunk(b"cICP", &[9, 16, 0, 1]), &plain[33..]].concat();
+    for q in [Quality::Auto, Quality::Fixed(60)] {
+        let out = compress(&input, &options(q, Effort::Default)).unwrap();
+        assert_eq!(decode(&out.bytes).pixels, photo.pixels, "{q:?} changed pixels");
+        assert_eq!(out.report, squish_core::Report::default(), "{q:?}");
+        assert!(contains(&out.bytes, b"cICP"), "{q:?} dropped the HDR tag");
+    }
+}
+
+/// `photo.jpg`'s pixels as a CMYK JPEG, with the Adobe marker libjpeg writes for CMYK.
+fn cmyk_jpeg() -> Vec<u8> {
+    let photo = decode(&fixture("photo.jpg"));
+    let cmyk: Vec<u8> = photo
+        .pixels
+        .chunks(3)
+        .flat_map(|p| {
+            let k = 255 - p[0].max(p[1]).max(p[2]);
+            [255 - p[0] - k, 255 - p[1] - k, 255 - p[2] - k, k]
+        })
+        .collect();
+    let mut c = mozjpeg::Compress::new(mozjpeg::ColorSpace::JCS_CMYK);
+    c.set_size(photo.width as usize, photo.height as usize);
+    c.set_quality(95.0);
+    let mut started = c.start_compress(Vec::new()).unwrap();
+    started.write_marker(mozjpeg::Marker::COM, b"cmyk fixture");
+    started.write_scanlines(&cmyk).unwrap();
+    started.finish().unwrap()
+}
+
+fn cmyk_pixels(bytes: &[u8]) -> Vec<u8> {
+    let d = mozjpeg::Decompress::new_mem(bytes).unwrap();
+    assert_eq!(d.color_space(), mozjpeg::ColorSpace::JCS_CMYK);
+    d.to_colorspace(mozjpeg::ColorSpace::JCS_CMYK).unwrap().read_scanlines::<u8>().unwrap()
+}
+
+#[test]
+fn cmyk_jpeg_only_gets_the_lossless_steps() {
+    let input = cmyk_jpeg();
+    for o in [Options::default(), options(Quality::Fixed(60), Effort::Fast)] {
+        let out = compress(&input, &o).unwrap();
+        assert!(out.bytes.len() < input.len(), "{o:?}: the comment should have been stripped");
+        assert_eq!(cmyk_pixels(&out.bytes), cmyk_pixels(&input), "{o:?} changed pixels");
+        assert!(contains(&out.bytes, b"Adobe"), "{o:?} dropped the Adobe marker");
+        assert_eq!(out.report, squish_core::Report::default());
+    }
+}
+
+/// Layouts no fixture covers, built here so they stay tiny.
+fn unusual_inputs() -> Vec<(&'static str, Vec<u8>)> {
+    let (w, h) = (64u32, 48u32);
+    let png_of = |color, depth, pixels: Vec<u8>| {
+        let mut out = Vec::new();
+        {
+            let mut e = png::Encoder::new(&mut out, w, h);
+            e.set_color(color);
+            e.set_depth(depth);
+            let mut writer = e.write_header().unwrap();
+            writer.write_image_data(&pixels).unwrap();
+        }
+        out
+    };
+    let ramp = |x: u32, y: u32| ((x * 4 + y * 3) % 256) as u8;
+    let rgb16: Vec<u8> =
+        (0..h).flat_map(|y| (0..w).flat_map(move |x| [ramp(x, y), x as u8, y as u8, 7, ramp(y, x), 0])).collect();
+    let gray16: Vec<u8> = (0..h).flat_map(|y| (0..w).flat_map(move |x| [ramp(x, y), (x * y) as u8])).collect();
+    let gray_alpha: Vec<u8> = (0..h).flat_map(|y| (0..w).flat_map(move |x| [ramp(x, y), (x * 4) as u8])).collect();
+    let one_bit: Vec<u8> =
+        (0..h).flat_map(|y| (0..w / 8).map(move |x| if (x + y) % 2 == 0 { 0xAA } else { 0x55 })).collect();
+
+    let photo = decode(&fixture("photo.jpg"));
+    let mut c = mozjpeg::Compress::new(mozjpeg::ColorSpace::JCS_RGB);
+    c.set_size(photo.width as usize, photo.height as usize);
+    c.set_quality(92.0);
+    c.set_progressive_mode();
+    let mut started = c.start_compress(Vec::new()).unwrap();
+    started.write_scanlines(&photo.pixels).unwrap();
+    let progressive = started.finish().unwrap();
+
+    let mut c = mozjpeg::Compress::new(mozjpeg::ColorSpace::JCS_RGB);
+    c.set_size(1, 1);
+    let mut started = c.start_compress(Vec::new()).unwrap();
+    started.write_scanlines(&[200, 100, 50]).unwrap();
+    let tiny_jpeg = started.finish().unwrap();
+
+    vec![
+        ("16-bit rgb", png_of(png::ColorType::Rgb, png::BitDepth::Sixteen, rgb16)),
+        ("16-bit gray", png_of(png::ColorType::Grayscale, png::BitDepth::Sixteen, gray16)),
+        ("gray+alpha", png_of(png::ColorType::GrayscaleAlpha, png::BitDepth::Eight, gray_alpha)),
+        ("1-bit gray", png_of(png::ColorType::Grayscale, png::BitDepth::One, one_bit)),
+        ("1x1 png", rgb_png(1, 1, &[200, 100, 50], |_| {})),
+        ("progressive jpeg", progressive),
+        ("1x1 jpeg", tiny_jpeg),
+    ]
+}
+
+#[test]
+fn unusual_layouts_keep_dimensions_and_never_grow() {
+    let settings = [
+        options(Quality::Auto, Effort::Default),
+        options(Quality::Auto, Effort::Fast),
+        options(Quality::Fixed(60), Effort::Default),
+        options(Quality::Lossless, Effort::Default),
+    ];
+    for (name, input) in unusual_inputs() {
+        let before = decode(&input);
+        for o in &settings {
+            let out = compress(&input, o).unwrap_or_else(|e| panic!("{name} with {o:?}: {e}"));
+            assert!(out.bytes.len() <= input.len(), "{name} grew with {o:?}");
+            let after = decode(&out.bytes);
+            assert_eq!((after.width, after.height), (before.width, before.height), "{name} with {o:?}");
+            if o.quality == Quality::Lossless {
+                assert_eq!(after.pixels, before.pixels, "{name}: lossless changed pixels");
+            }
         }
     }
 }
