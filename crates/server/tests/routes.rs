@@ -172,6 +172,41 @@ async fn slow_job_is_504_and_keeps_its_slot() {
     assert_error(&response, &body, StatusCode::TOO_MANY_REQUESTS, "busy");
 }
 
+/// A body that never sends a byte, like a client that stalls mid-upload.
+struct Stalled;
+
+impl axum::body::HttpBody for Stalled {
+    type Data = axum::body::Bytes;
+    type Error = std::convert::Infallible;
+
+    fn poll_frame(
+        self: std::pin::Pin<&mut Self>,
+        _: &mut std::task::Context<'_>,
+    ) -> std::task::Poll<Option<Result<http_body::Frame<Self::Data>, Self::Error>>> {
+        std::task::Poll::Pending
+    }
+}
+
+#[tokio::test]
+async fn stalled_upload_is_408() {
+    let app = router(Config { timeout: Duration::from_millis(50), ..config() });
+    let (response, body) = send(app, Request::post("/api/compress").body(Body::new(Stalled)).unwrap()).await;
+    assert_error(&response, &body, StatusCode::REQUEST_TIMEOUT, "upload_timeout");
+}
+
+#[tokio::test]
+async fn uploads_beyond_their_slots_are_429() {
+    // One job slot allows two uploads at once. Two stalled uploads take both.
+    let app = router(Config { jobs: 1, ..config() });
+    for _ in 0..2 {
+        let request = Request::post("/api/compress").body(Body::new(Stalled)).unwrap();
+        tokio::spawn(app.clone().oneshot(request));
+    }
+    tokio::time::sleep(Duration::from_millis(50)).await;
+    let (response, body) = post(app, "/api/compress", fixture("photo.jpg")).await;
+    assert_error(&response, &body, StatusCode::TOO_MANY_REQUESTS, "busy");
+}
+
 #[tokio::test]
 async fn index_and_assets_are_embedded() {
     let (response, body) = get(router(config()), "/").await;

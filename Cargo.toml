@@ -25,6 +25,7 @@ mozjpeg = "0.10"
 axum = { version = "0.8", default-features = false, features = ["http1", "query", "tokio"] }
 tokio = { version = "1.53", features = ["rt-multi-thread", "net", "time", "signal", "macros"] }
 http-body-util = "0.1"
+http-body = "1"
 rust-embed = "8.13"
 tower = { version = "0.5", features = ["util"] }
 

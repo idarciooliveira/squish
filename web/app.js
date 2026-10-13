@@ -10,6 +10,8 @@ const IMAGE_EXT = /\.(png|jpe?g|webp|avif|gif|apng)$/i;
 const $ = (id) => document.getElementById(id);
 const items = [];
 const queue = [];
+// Bumped by Clear, so folder walks still running drop what they find afterwards.
+let generation = 0;
 let running = 0;
 let limits = { max_body_bytes: Infinity };
 
@@ -29,7 +31,7 @@ fetch("api/info")
 // --- adding files ------------------------------------------------------------
 
 function add(file, path, fromWalk) {
-  if (fromWalk && (!IMAGE_EXT.test(file.name) || /\.min\.[^.]+$/i.test(file.name) || file.name.startsWith("."))) return;
+  if (fromWalk && !walkPicks(path || file.name)) return;
   const item = {
     file,
     path: path || file.name,
@@ -65,7 +67,8 @@ $("folder").addEventListener("change", (e) => {
 
 const drop = $("drop");
 drop.addEventListener("keydown", (e) => {
-  if (e.key === "Enter" || e.key === " ") {
+  // Only the drop zone itself. The buttons inside it handle their own keys.
+  if (e.target === drop && (e.key === "Enter" || e.key === " ")) {
     e.preventDefault();
     $("files").click();
   }
@@ -86,22 +89,23 @@ document.addEventListener("drop", (e) => {
     .filter((i) => i.kind === "file")
     .map((i) => (i.webkitGetAsEntry ? i.webkitGetAsEntry() : null));
   if (entries.length && entries.every(Boolean)) {
-    for (const entry of entries) walk(entry, "", false);
+    for (const entry of entries) walk(entry, "", false, generation);
   } else {
     for (const f of e.dataTransfer.files) add(f, f.name, false);
   }
 });
 
 // Dropped folders arrive as entries. Files inside them follow the folder walk rules.
-function walk(entry, prefix, inFolder) {
+function walk(entry, prefix, inFolder, gen) {
+  if (gen !== generation) return;
   if (entry.isFile) {
-    entry.file((f) => add(f, prefix + f.name, inFolder));
+    entry.file((f) => gen === generation && add(f, prefix + f.name, inFolder));
   } else if (entry.isDirectory && !(inFolder && entry.name.startsWith("."))) {
     const reader = entry.createReader();
     const next = () =>
       reader.readEntries((batch) => {
-        if (!batch.length) return;
-        for (const child of batch) walk(child, `${prefix}${entry.name}/`, true);
+        if (!batch.length || gen !== generation) return;
+        for (const child of batch) walk(child, `${prefix}${entry.name}/`, true, gen);
         next(); // readEntries returns at most 100 entries per call
       });
     next();
@@ -149,12 +153,27 @@ async function upload(item) {
     const unsupported = error.error === "unsupported_format" || error.error === "animated_image";
     return finish(item, unsupported ? "unsupported" : "failed", error.message);
   }
-  const blob = await response.blob();
+  let blob;
+  try {
+    blob = await response.blob();
+  } catch {
+    if (item.cancelled) return;
+    return finish(item, "failed", "network error, is squish serve still running?");
+  }
   if (item.cancelled) return;
   item.output = blob;
   item.originalSize = Number(response.headers.get("X-Original-Size")) || item.file.size;
   const kept = response.headers.get("X-Kept-Original") === "true";
   finish(item, kept ? "already_optimized" : "compressed");
+}
+
+// The folder walk rules from the CLI (ADR-0019): image extensions only, no `*.min.*`, and
+// nothing hidden below the chosen folder. `path` starts with that folder's own name.
+function walkPicks(path) {
+  const parts = path.split("/");
+  const name = parts[parts.length - 1];
+  if (!IMAGE_EXT.test(name) || /\.min\.[^.]+$/i.test(name)) return false;
+  return !parts.slice(1).some((p) => p.startsWith("."));
 }
 
 function retryAfter(response) {
@@ -245,6 +264,7 @@ $("download-all").addEventListener("click", async () => {
 });
 
 $("clear").addEventListener("click", () => {
+  generation++;
   // Files still in flight finish without touching the page.
   for (const item of items) {
     item.cancelled = true;

@@ -118,6 +118,8 @@ button {
   margin-top: 10px;
 }
 
+.fields label[hidden] { display: none; }
+
 .fields label {
   display: flex;
   flex-direction: column;

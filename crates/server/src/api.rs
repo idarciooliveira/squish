@@ -21,7 +21,14 @@ pub(crate) struct AppState {
     /// One permit per job slot. Handlers only `try_acquire`, so a full server answers `429`
     /// at once instead of queueing.
     pub slots: Arc<Semaphore>,
+    /// Bodies being read at once. Each one may buffer up to `max_body`, so this bounds the
+    /// memory that slow or unfinished uploads can hold.
+    pub uploads: Semaphore,
 }
+
+/// Upload slots per job slot. The page sends 4 files at once, so a few more uploads than
+/// jobs keeps the next file ready while the current ones compress.
+pub(crate) const UPLOADS_PER_JOB: usize = 2;
 
 pub(crate) async fn health() -> &'static str {
     "ok"
@@ -67,7 +74,21 @@ pub(crate) async fn compress(
     if state.slots.available_permits() == 0 {
         return Err(ApiError::busy());
     }
-    let bytes = read_body(body, config.max_body, content_length(&headers)).await?;
+    let bytes = {
+        let _upload = state.uploads.try_acquire().map_err(|_| ApiError::busy())?;
+        // The compression timeout only starts once the body is in, so the upload gets its own.
+        match tokio::time::timeout(config.timeout, read_body(body, config.max_body, content_length(&headers))).await {
+            Ok(read) => read?,
+            Err(_) => {
+                let secs = config.timeout.as_secs_f64();
+                return Err(ApiError::new(
+                    StatusCode::REQUEST_TIMEOUT,
+                    "upload_timeout",
+                    format!("the upload took longer than {secs} s"),
+                ));
+            }
+        }
+    };
     if bytes.is_empty() {
         return Err(ApiError::new(StatusCode::BAD_REQUEST, "empty_body", "the request body is empty"));
     }

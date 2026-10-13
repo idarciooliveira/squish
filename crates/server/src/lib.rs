@@ -23,7 +23,11 @@ use crate::api::AppState;
 
 /// Every route from ADR-0018. `/shrink` and `/output/` stay free for ADR-0021.
 pub fn router(config: Config) -> Router {
-    let state = Arc::new(AppState { slots: Arc::new(Semaphore::new(config.jobs)), config });
+    let state = Arc::new(AppState {
+        slots: Arc::new(Semaphore::new(config.jobs)),
+        uploads: Semaphore::new(config.jobs.saturating_mul(api::UPLOADS_PER_JOB)),
+        config,
+    });
     Router::new()
         .route("/api/compress", post(api::compress))
         .route("/api/info", get(api::info))
