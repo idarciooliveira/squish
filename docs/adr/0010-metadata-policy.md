@@ -1,6 +1,6 @@
 # ADR-0010: Strip metadata except the color profile and orientation
 
-- Status: Accepted. For PNG, ADR-0027 counts `sRGB`, `gAMA`, `cHRM`, `cICP`, `mDCV` and `cLLI` as part of the color profile.
+- Status: Accepted. For PNG, ADR-0027 counts `sRGB`, `gAMA`, `cHRM`, `cICP`, `mDCV` and `cLLI` as part of the color profile. For WebP, ADR-0028 sets the chunk rules.
 - Date: 2026-10-11
 
 ## Context

@@ -10,7 +10,7 @@ edition = "2024"
 squish-core = { path = "../../crates/core" }
 dssim = "3.5"
 rgb = "0.8"
-image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "webp"] }
 libc = "0.2"
 
 [profile.release]

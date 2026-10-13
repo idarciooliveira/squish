@@ -1,0 +1,72 @@
+
+===== WEBP: 12 files =====
+TinyPNG dssim: min 0.00000  median 0.00185  max 0.00555
+
+1. Oracle, per-file TinyPNG target (Phase 0 method, this grid)
+  oracle                     bytes  +5.8%  strict 12/12  <=1.25x 12  <=1.5x 12  worst 1.00x  median dssim 0.00178 (0.96x)  kept 1
+
+2. One fixed dssim target for every file
+  dssim <= 0.0003            bytes +18.9%  strict 12/12  <=1.25x 12  <=1.5x 12  worst 0.99x  median dssim 0.00145 (0.75x)  kept 2
+  dssim <= 0.0005            bytes +18.9%  strict 11/12  <=1.25x 12  <=1.5x 12  worst 1.05x  median dssim 0.00145 (0.76x)  kept 2
+  dssim <= 0.0008            bytes +18.9%  strict 11/12  <=1.25x 12  <=1.5x 12  worst 1.05x  median dssim 0.00145 (0.76x)  kept 2
+  dssim <= 0.001             bytes +18.9%  strict 11/12  <=1.25x 12  <=1.5x 12  worst 1.05x  median dssim 0.00145 (0.76x)  kept 2
+  dssim <= 0.0012            bytes +18.2%  strict 11/12  <=1.25x 12  <=1.5x 12  worst 1.05x  median dssim 0.00145 (0.79x)  kept 1
+  dssim <= 0.0015            bytes +16.2%  strict  8/12  <=1.25x 12  <=1.5x 12  worst 1.22x  median dssim 0.00148 (0.79x)  kept 1
+  dssim <= 0.002             bytes +15.8%  strict  6/12  <=1.25x 12  <=1.5x 12  worst 1.24x  median dssim 0.00193 (1.02x)  kept 1
+  dssim <= 0.0025            bytes +15.7%  strict  5/12  <=1.25x 12  <=1.5x 12  worst 1.24x  median dssim 0.00208 (1.07x)  kept 1
+  dssim <= 0.003             bytes +15.6%  strict  3/12  <=1.25x 12  <=1.5x 12  worst 1.24x  median dssim 0.00208 (1.07x)  kept 1
+
+2b. One libwebp quality for every file (method 4)
+  q66                        bytes -16.7%  strict  1/12  <=1.25x 11  <=1.5x 12  worst 1.31x  median dssim 0.00208 (1.16x)  kept 1
+  q67                        bytes -14.9%  strict  1/12  <=1.25x 11  <=1.5x 12  worst 1.28x  median dssim 0.00203 (1.12x)  kept 1
+  q68                        bytes -10.3%  strict  1/12  <=1.25x 11  <=1.5x 12  worst 1.27x  median dssim 0.00194 (1.10x)  kept 1
+  q69                        bytes  -9.5%  strict  2/12  <=1.25x 12  <=1.5x 12  worst 1.21x  median dssim 0.00187 (1.04x)  kept 1
+  q70                        bytes  +0.0%  strict  4/12  <=1.25x 12  <=1.5x 12  worst 1.13x  median dssim 0.00185 (1.00x)  kept 1
+  q71                        bytes  +1.3%  strict  8/12  <=1.25x 12  <=1.5x 12  worst 1.11x  median dssim 0.00172 (0.95x)  kept 1
+  q72                        bytes  +7.6%  strict 11/12  <=1.25x 12  <=1.5x 12  worst 1.05x  median dssim 0.00170 (0.92x)  kept 1
+  q73                        bytes +10.2%  strict 10/12  <=1.25x 12  <=1.5x 12  worst 1.04x  median dssim 0.00165 (0.89x)  kept 1
+  q74                        bytes +11.4%  strict 11/12  <=1.25x 12  <=1.5x 12  worst 1.02x  median dssim 0.00161 (0.86x)  kept 1
+  q75                        bytes +12.3%  strict 11/12  <=1.25x 12  <=1.5x 12  worst 1.01x  median dssim 0.00155 (0.84x)  kept 1
+  q76                        bytes +18.9%  strict 12/12  <=1.25x 12  <=1.5x 12  worst 0.99x  median dssim 0.00145 (0.75x)  kept 2
+  TinyPNG's output bytes sit at this grid quality (nearest, bytes within 0.5%):
+    1.webp                                               q70
+    2.sm.webp                                            q69, q70
+    3.sm.webp                                            q69, q70
+    4.sm.webp                                            q69, q70
+    5.sm.webp                                            q70
+    media_11b1f18d198f70c3c75d86f8d6226caf617240e78.webp q69, q70
+    sample-city-park-400x300.webp                        q70, q71
+    sample-clouds-400x300.webp                           q68, q69, q70
+    sample-lossy-400x300.webp                            original
+    sample-photo-1920x1080.webp                          q70
+    sample-photo-3840x2160.webp                          q70, q71
+    sample1.webp                                         q69, q70
+
+2c. fs2 @ 1mp targets with a floor on quality (search range floor to the grid's top)
+  q66-q76 fs2 >= 75          bytes -12.0%  strict  5/12  <=1.25x 12  <=1.5x 12  worst 1.24x  median dssim 0.00179 (1.02x)  kept 1
+  q66-q76 fs2 >= 78          bytes  -7.4%  strict  7/12  <=1.25x 12  <=1.5x 12  worst 1.24x  median dssim 0.00150 (0.89x)  kept 1
+  q66-q76 fs2 >= 80          bytes  -7.4%  strict  9/12  <=1.25x 12  <=1.5x 12  worst 1.24x  median dssim 0.00147 (0.82x)  kept 1
+  q66-q76 fs2 >= 82          bytes  -7.3%  strict  9/12  <=1.25x 12  <=1.5x 12  worst 1.24x  median dssim 0.00147 (0.77x)  kept 2
+  q66-q76 fs2 >= 84          bytes  +8.0%  strict 10/12  <=1.25x 12  <=1.5x 12  worst 1.24x  median dssim 0.00147 (0.77x)  kept 2
+  q66-q76 fs2 >= 88          bytes +16.1%  strict 11/12  <=1.25x 12  <=1.5x 12  worst 1.24x  median dssim 0.00147 (0.75x)  kept 2
+
+3. Candidate metrics with one fixed target
+
+  fs2 @ 1mp (12 files): TinyPNG scores min 69.418 median 76.880 max 100.000 (cv 0.10)
+  target = TinyPNG median    bytes  -9.1%  strict  7/12  <=1.25x 12  <=1.5x 12  worst 1.24x  median dssim 0.00158 (0.92x)  kept 1
+  median <= 1x, worst <= 1.5x t=75.18 bytes -11.3%  strict  6/12  <=1.25x 12  <=1.5x 12  worst 1.24x  median dssim 0.00179 (0.99x)  kept 1
+  median <= 1x, worst <= 2x t=75.18 bytes -11.3%  strict  6/12  <=1.25x 12  <=1.5x 12  worst 1.24x  median dssim 0.00179 (0.99x)  kept 1
+  every file <= 1x t=90.32   bytes +17.8%  strict 12/12  <=1.25x 12  <=1.5x 12  worst 1.00x  median dssim 0.00145 (0.75x)  kept 2
+
+4. Search cost per file, CPU ms (binary search, measured per-probe costs)
+  dssim @ 1   4 probes: median     213  p95   18746  max   18746
+  dssim @ 1   3 probes: median     166  p95   14714  max   14714
+  dssim @ 1   2 probes: median     118  p95   10682  max   10682
+    fs2 @ 1mp 4 probes: median      91  p95    3835  max    3835
+    fs2 @ 1mp 3 probes: median      70  p95    2904  max    2904
+    fs2 @ 1mp 2 probes: median      48  p95    1973  max    1973
+  no search, one encode: median       9  p95     649  max     649
+  image size: median 0.1 MP, max 10.5 MP
+
+===== WEBP-LOSSLESS: 1 files =====
+  sample-lossless-400x300.webp                         original       138  lossless       138  tinypng       138  dssim 0.00000

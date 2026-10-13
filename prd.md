@@ -76,12 +76,13 @@ Both use the same core library, so they produce identical results.
 
 1. Detect `RIFF....WEBP`. Read the VP8 or VP8L chunk to tell lossy from lossless. Skip animated files.
 2. Decode with `image-webp`.
-3. Re-encode with libwebp. Lossy input gets lossy quality ~75, method 4. Lossless input gets lossless.
-4. Apply the size guard.
+3. Lossy input: libwebp at a fixed quality 71, method 4, with no search ([ADR-0028](docs/adr/0028-webp-quality-and-metadata.md)). Lossless input stays lossless.
+4. Apply the metadata policy to the RIFF chunks: keep `ICCP` and the orientation, drop the rest ([ADR-0028](docs/adr/0028-webp-quality-and-metadata.md)).
+5. Apply the size guard.
 
 ### 4.4 Default settings
 
-`--quality auto` searches per file against a target ([ADR-0024](docs/adr/0024-per-file-quality-search-by-default.md), [ADR-0026](docs/adr/0026-fast-ssim2-as-the-quality-metric.md)). Phase 1 recalibrated the targets with the real search.
+`--quality auto` searches per file against a target ([ADR-0024](docs/adr/0024-per-file-quality-search-by-default.md), [ADR-0026](docs/adr/0026-fast-ssim2-as-the-quality-metric.md)). Phase 1 recalibrated the targets with the real search. WebP is the exception: it uses a fixed quality until a larger corpus supports a search ([ADR-0028](docs/adr/0028-webp-quality-and-metadata.md)).
 
 | Setting | fast | default | max |
 |---|---|---|---|
@@ -89,6 +90,7 @@ Both use the same core library, so they produce identical results.
 | oxipng preset | 1 | 2 | 5 |
 | JPEG | q66, no search | lowest quality with fs2 ≥ 88.7 | same target, more probes allowed |
 | mozjpeg trellis | off | on | on, with scan optimization |
+| WebP | q71, no search | q71, no search | q71, no search |
 | WebP method | 2 | 4 | 6 |
 
 ## 5. Functional requirements
@@ -238,7 +240,7 @@ Versions and licenses checked against crates.io and npm on 2026-10-11.
 | PNG quantization | `quantizr` | 1.4 | MIT | RGBA and dithering confirmed in Phase 0 ([ADR-0022](docs/adr/0022-quantizr-as-the-png-quantizer.md)) |
 | Quality metric | `fast-ssim2` | 0.9 | BSD-2-Clause | ssimulacra2 with SIMD, scored at ~1 MP. Needs Rust 1.89+ ([ADR-0026](docs/adr/0026-fast-ssim2-as-the-quality-metric.md)) |
 | JPEG encoding | `mozjpeg` / `mozjpeg-sys` | 0.10 / 2.2 | IJG (+ Zlib, BSD-3-Clause in -sys) | Compiles vendored C. Without `nasm` it builds without SIMD, which is slower. Last release Feb 2025. |
-| WebP encoding (Phase 2) | `webp` / `libwebp-sys` | 0.3 / 0.14 | MIT OR Apache-2.0 / MIT | |
+| WebP encoding (Phase 2) | `webp` / `libwebp-sys` | 0.3 / 0.9 | MIT OR Apache-2.0 / MIT | `webp` 0.3.1 pins `libwebp-sys` 0.9. Version 0.14 is out, but only through the `-sys` crate directly. |
 | WebP decoding (Phase 2) | `image-webp` | 0.2 | MIT OR Apache-2.0 | |
 | Metadata chunks | `img-parts` | 0.4 | MIT OR Apache-2.0 | Moves ICC and EXIF segments without re-encoding |
 | EXIF orientation | `kamadak-exif` | 0.6 | BSD-2-Clause | Last release Nov 2024. We could replace it with ~50 lines of our own. |
@@ -294,6 +296,7 @@ The metric work is done: fast-ssim2 at about 1 MP, with starting targets from th
 
 ### Phase 2: WebP, zip, polish, and AVIF only if needed (about 1 week)
 
+- [x] WebP corpus, curves and quality policy ([ADR-0028](docs/adr/0028-webp-quality-and-metadata.md)), harness accepts `--only webp`
 - [ ] `webp.rs`: detect lossy or lossless, encode with libwebp
 - [ ] Skip animated files cleanly
 - [x] `--zip`, `--json`, `--dry-run`

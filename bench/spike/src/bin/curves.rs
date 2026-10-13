@@ -8,13 +8,19 @@
 //!
 //! JPEG grid: mozjpeg quality 30 to 95 in steps of 3, progressive, 4:2:0.
 //! PNG grid: quantizr palette sizes 2 to 256, dithering 1.0, then oxipng preset 2.
+//! WebP grid: libwebp quality 25 to 95 in steps of 5 at method 4 (`CURVES_WEBP_GRID`
+//! overrides it), for lossy sources
+//! (format `webp`). Lossless sources (format `webp-lossless`) get one lossless encode at
+//! method 4, setting `lossless`. Animated files are skipped.
 //!
 //! Metrics: dssim (full scale, RGBA), fast-ssim2 (`fs2`), butteraugli max-norm (`ba`)
 //! and 3-norm (`ba3`) at scales `1`, `2` (half) and `1mp` (box-downscaled to about
 //! one megapixel), image-compare SSIM and hybrid at `1mp`, and rust-av ssimulacra2
 //! (`s2rs`) once per file for speed. Images with alpha are composited over white and
 //! black for the RGB metrics, and the worse of the two scores is kept. Images above
-//! 30 MP are scored at `1mp` only, to fit in memory.
+//! 30 MP are scored at `1mp` only, to fit in memory. WebP results get dssim and fs2 at
+//! `1mp` and nothing else: ADR-0026 already settled the metric, and this run is only
+//! meant to find the target.
 //!
 //! Output is long-format CSV: file,format,setting,bytes,metric,scale,value,wall_ms,cpu_ms.
 //! cpu_ms is process CPU time, so it counts every thread a metric spreads across.
@@ -33,6 +39,10 @@ type Res<T> = Result<T, Box<dyn Error>>;
 
 const JPEG_GRID: std::ops::RangeInclusive<u8> = 30..=95;
 const PNG_GRID: &[u32] = &[2, 4, 8, 12, 16, 24, 32, 48, 64, 96, 128, 160, 192, 224, 256];
+/// Lossy WebP qualities: low, high, step. `CURVES_WEBP_GRID=66:76:1` overrides it.
+const WEBP_GRID: (u8, u8, usize) = (25, 95, 5);
+/// PRD section 4.4: the default effort preset. `fast` uses 2 and `max` 6.
+const WEBP_METHOD: i32 = 4;
 
 fn cpu_ms() -> f64 {
     let mut u: libc::rusage = unsafe { std::mem::zeroed() };
@@ -126,6 +136,18 @@ fn main() -> Res<()> {
     let out_csv = PathBuf::from(args.get(3).cloned().unwrap_or_else(|| "../results/curves.csv".into()));
     // CURVES_ONLY=png or jpeg limits the run to one format.
     let only = std::env::var("CURVES_ONLY").unwrap_or_default();
+    let webp_grid = match std::env::var("CURVES_WEBP_GRID") {
+        Ok(g) => {
+            let v: Vec<&str> = g.split(':').collect();
+            let [lo, hi, step] = v[..] else { return Err("CURVES_WEBP_GRID takes low:high:step".into()) };
+            let (lo, hi, step): (u8, u8, usize) = (lo.parse()?, hi.parse()?, step.parse()?);
+            if lo > hi || hi > 100 || step == 0 {
+                return Err("CURVES_WEBP_GRID needs low <= high <= 100 and a step above 0".into());
+            }
+            (lo, hi, step)
+        }
+        Err(_) => WEBP_GRID,
+    };
 
     let mut files: Vec<PathBuf> = fs::read_dir(&root)?
         .filter_map(|e| e.ok().map(|e| e.path()))
@@ -140,14 +162,28 @@ fn main() -> Res<()> {
         let name = path.file_name().unwrap().to_string_lossy().to_string();
         let orig = fs::read(path)?;
         let Ok(tiny) = fs::read(tiny_dir.join(&name)) else { continue };
-        let fmt = if orig.starts_with(b"\x89PNG") { "png" } else if orig.starts_with(&[0xFF, 0xD8]) { "jpeg" } else { continue };
-        if !only.is_empty() && only != fmt {
+        let fmt = if orig.starts_with(b"\x89PNG") {
+            "png"
+        } else if orig.starts_with(&[0xFF, 0xD8]) {
+            "jpeg"
+        } else if let Some((lossless, animated)) = webp_kind(&orig) {
+            if animated {
+                println!("--- {name}: animated WebP, skipped");
+                continue;
+            }
+            if lossless { "webp-lossless" } else { "webp" }
+        } else {
+            continue;
+        };
+        // CURVES_ONLY=webp takes both WebP kinds.
+        if !only.is_empty() && !fmt.starts_with(&only) {
             continue;
         }
+        let is_webp = fmt.starts_with("webp");
         let img = image::load_from_memory(&orig)?;
         let (w, h) = img.dimensions();
         let rgba = img.to_rgba8();
-        let has_alpha = fmt == "png" && rgba.pixels().any(|p| p[3] != 255);
+        let has_alpha = fmt != "jpeg" && rgba.pixels().any(|p| p[3] != 255);
         println!("--- {name} ({fmt}, {w}x{h}{})", if has_alpha { ", alpha" } else { "" });
         out.row(&name, fmt, "original", orig.len(), "pixels", "1", Some((w * h) as f64), 0.0, 0.0);
 
@@ -161,7 +197,7 @@ fn main() -> Res<()> {
         let big = w as u64 * h as u64 > 30_000_000;
         let mut scales = vec![];
         for (label, factor) in [("1", 1), ("2", 2), ("1mp", f1mp)] {
-            if big && label != "1mp" {
+            if (big || is_webp) && label != "1mp" {
                 continue;
             }
             let (refs, wt, ct) = timed(|| base.iter().map(|v| downscale(v, factor)).collect::<Vec<_>>());
@@ -169,11 +205,16 @@ fn main() -> Res<()> {
             let (fs2, wt, ct) = timed(|| refs.iter().map(|r| Ssimulacra2Reference::new(&slice(r)).expect("fs2 ref")).collect::<Vec<_>>());
             out.row(&name, fmt, "ref", 0, "fs2", label, None, wt, ct);
             let (ba, wt, ct) = timed(|| {
+                if is_webp {
+                    return vec![];
+                }
                 refs.iter()
                     .map(|r| butteraugli::ButteraugliReference::new(r.as_raw(), r.width() as usize, r.height() as usize, Default::default()).expect("ba ref"))
                     .collect::<Vec<_>>()
             });
-            out.row(&name, fmt, "ref", 0, "ba", label, None, wt, ct);
+            if !is_webp {
+                out.row(&name, fmt, "ref", 0, "ba", label, None, wt, ct);
+            }
             scales.push(Scale { label, factor, fs2, ba, refs });
         }
 
@@ -190,12 +231,14 @@ fn main() -> Res<()> {
                 out.row(&name, fmt, setting, bytes, "downscale", s.label, None, wt, ct);
                 let (v, wt, ct) = timed(|| s.fs2.iter().zip(&cv).map(|(r, c)| r.compare(&slice(c)).expect("fs2")).fold(f64::INFINITY, f64::min));
                 out.row(&name, fmt, setting, bytes, "fs2", s.label, Some(v), wt, ct);
-                let (v, wt, ct) = timed(|| {
-                    s.ba.iter().zip(&cv).map(|(r, c)| r.compare(c.as_raw()).expect("ba")).fold((0.0f64, 0.0f64), |a, r| (a.0.max(r.score), a.1.max(r.pnorm_3)))
-                });
-                out.row(&name, fmt, setting, bytes, "ba", s.label, Some(v.0), wt, ct);
-                out.row(&name, fmt, setting, bytes, "ba3", s.label, Some(v.1), 0.0, 0.0);
-                if s.label == "1mp" {
+                if !s.ba.is_empty() {
+                    let (v, wt, ct) = timed(|| {
+                        s.ba.iter().zip(&cv).map(|(r, c)| r.compare(c.as_raw()).expect("ba")).fold((0.0f64, 0.0f64), |a, r| (a.0.max(r.score), a.1.max(r.pnorm_3)))
+                    });
+                    out.row(&name, fmt, setting, bytes, "ba", s.label, Some(v.0), wt, ct);
+                    out.row(&name, fmt, setting, bytes, "ba3", s.label, Some(v.1), 0.0, 0.0);
+                }
+                if s.label == "1mp" && !is_webp {
                     let (v, wt, ct) = timed(|| {
                         s.refs.iter().zip(&cv).map(|(r, c)| image_compare::rgb_similarity_structure(&image_compare::Algorithm::MSSIMSimple, r, c).expect("ic ssim").score).fold(f64::INFINITY, f64::min)
                     });
@@ -224,6 +267,23 @@ fn main() -> Res<()> {
                 let (dec, wt, ct) = timed(|| image::load_from_memory(&bytes).expect("decode").to_rgba8());
                 out.row(&name, fmt, &setting, bytes.len(), "decode", "1", None, wt, ct);
                 score(&mut out, &setting, bytes.len(), &dec, q == 66 && !big);
+                println!("  {setting}: {} bytes", bytes.len());
+            }
+        } else if is_webp {
+            // Opaque files go in as RGB, so libwebp doesn't carry an alpha plane.
+            let rgb = img.to_rgb8();
+            let pixels: &[u8] = if has_alpha { rgba.as_raw() } else { rgb.as_raw() };
+            let settings: Vec<(String, Option<f32>)> = if fmt == "webp-lossless" {
+                vec![("lossless".into(), None)]
+            } else {
+                (webp_grid.0..=webp_grid.1).step_by(webp_grid.2).map(|q| (format!("q{q}"), Some(f32::from(q)))).collect()
+            };
+            for (setting, quality) in settings {
+                let (bytes, wt, ct) = timed(|| webp_encode(pixels, w, h, has_alpha, quality).expect("libwebp"));
+                out.row(&name, fmt, &setting, bytes.len(), "encode", "1", None, wt, ct);
+                let (dec, wt, ct) = timed(|| image::load_from_memory(&bytes).expect("decode").to_rgba8());
+                out.row(&name, fmt, &setting, bytes.len(), "decode", "1", None, wt, ct);
+                score(&mut out, &setting, bytes.len(), &dec, false);
                 println!("  {setting}: {} bytes", bytes.len());
             }
         } else {
@@ -283,6 +343,45 @@ fn encode_indexed_oxipng(w: u32, h: u32, pal: &[RGBA8], idx: &[u8]) -> Res<Vec<u
         enc.write_header()?.write_image_data(idx)?;
     }
     Ok(oxipng::optimize_from_memory(&buf, &oxipng::Options::from_preset(2))?)
+}
+
+/// Walks the RIFF chunks of a WebP file and returns (lossless, animated), or `None` if
+/// the bytes aren't WebP.
+fn webp_kind(bytes: &[u8]) -> Option<(bool, bool)> {
+    if bytes.len() < 12 || &bytes[..4] != b"RIFF" || &bytes[8..12] != b"WEBP" {
+        return None;
+    }
+    let (mut lossless, mut animated) = (false, false);
+    let mut at = 12;
+    while at + 8 <= bytes.len() {
+        let size = u32::from_le_bytes(bytes[at + 4..at + 8].try_into().ok()?) as usize;
+        match &bytes[at..at + 4] {
+            b"VP8L" => lossless = true,
+            b"VP8X" => animated |= bytes.get(at + 8).is_some_and(|f| f & 0x02 != 0),
+            b"ANIM" | b"ANMF" => animated = true,
+            _ => {}
+        }
+        at += 8 + size + (size & 1);
+    }
+    Some((lossless, animated))
+}
+
+/// libwebp at method 4. `quality` of `None` encodes lossless.
+fn webp_encode(pixels: &[u8], w: u32, h: u32, alpha: bool, quality: Option<f32>) -> Option<Vec<u8>> {
+    let enc = if alpha { webp::Encoder::from_rgba(pixels, w, h) } else { webp::Encoder::from_rgb(pixels, w, h) };
+    let mut cfg = webp::WebPConfig::new().ok()?;
+    cfg.method = WEBP_METHOD;
+    match quality {
+        Some(q) => {
+            cfg.quality = q;
+            cfg.alpha_compression = 1;
+        }
+        None => {
+            cfg.lossless = 1;
+            cfg.quality = 75.0;
+        }
+    }
+    Some(enc.encode_advanced(&cfg).ok()?.to_vec())
 }
 
 fn mozjpeg_encode(rgb: &RgbImage, w: u32, h: u32, q: u8) -> Option<Vec<u8>> {
