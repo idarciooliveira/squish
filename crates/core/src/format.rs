@@ -23,6 +23,16 @@ impl Format {
             Format::Avif => "avif",
         }
     }
+
+    /// The media type for `Content-Type`.
+    pub fn mime_type(self) -> &'static str {
+        match self {
+            Format::Png => "image/png",
+            Format::Jpeg => "image/jpeg",
+            Format::WebP => "image/webp",
+            Format::Avif => "image/avif",
+        }
+    }
 }
 
 impl fmt::Display for Format {

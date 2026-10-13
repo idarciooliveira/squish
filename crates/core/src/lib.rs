@@ -42,13 +42,18 @@ pub struct Output {
     pub report: Report,
 }
 
-/// Compresses one image, keeping its format.
-pub fn compress(bytes: &[u8], options: &Options) -> Result<Output, Error> {
+/// The formats this build can compress. The rest are detected and reported as unsupported.
+pub const SUPPORTED_FORMATS: &[Format] = &[Format::Png, Format::Jpeg];
+
+/// The checks `compress` runs before decoding: a supported, still format whose header
+/// dimensions fit `options.max_pixels`. They only read the header, so callers can reject a
+/// file cheaply before queueing it, as the HTTP server does.
+pub fn preflight(bytes: &[u8], options: &Options) -> Result<Info, Error> {
     let info = inspect(bytes).ok_or(Error::Unsupported(None))?;
     if info.animated {
         return Err(Error::Animated(info.format));
     }
-    if !matches!(info.format, Format::Png | Format::Jpeg) {
+    if !SUPPORTED_FORMATS.contains(&info.format) {
         return Err(Error::Unsupported(Some(info.format)));
     }
     let (width, height) =
@@ -56,7 +61,12 @@ pub fn compress(bytes: &[u8], options: &Options) -> Result<Output, Error> {
     if u64::from(width) * u64::from(height) > options.max_pixels {
         return Err(Error::TooManyPixels { width, height, limit: options.max_pixels });
     }
+    Ok(info)
+}
 
+/// Compresses one image, keeping its format.
+pub fn compress(bytes: &[u8], options: &Options) -> Result<Output, Error> {
+    let info = preflight(bytes, options)?;
     let encoded = codec::compress(info.format, bytes, options)?;
     let (out, kept_original) = guard::apply(bytes, encoded.bytes);
     Ok(Output { bytes: out, format: info.format, original_size: bytes.len(), kept_original, report: encoded.report })

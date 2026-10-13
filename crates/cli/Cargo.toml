@@ -6,8 +6,14 @@ edition.workspace = true
 license.workspace = true
 rust-version.workspace = true
 
+[features]
+default = ["server"]
+# `squish serve`. A CLI-only build turns it off (ADR-0020).
+server = ["dep:squish-server"]
+
 [dependencies]
 squish-core.workspace = true
+squish-server = { workspace = true, optional = true }
 clap.workspace = true
 rayon.workspace = true
 indicatif.workspace = true

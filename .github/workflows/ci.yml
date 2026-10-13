@@ -22,5 +22,7 @@ jobs:
       - run: cargo clippy --workspace --all-targets -- -D warnings
       # The build with no quantizer must still compile (FR-6).
       - run: cargo check -p squish-core --no-default-features
+      # A CLI-only build, without `squish serve`, must pass its own tests (ADR-0020).
+      - run: cargo test -p squish --no-default-features
       # bench/images/ is gitignored, so golden.rs skips here and the fixtures carry the run (ADR-0020).
       - run: cargo test --workspace

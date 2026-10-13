@@ -139,10 +139,43 @@ fn stdin_to_stdout() {
 }
 
 #[test]
-fn serve_is_reserved() {
-    let dir = tempfile::tempdir().unwrap();
-    let out = Command::new(env!("CARGO_BIN_EXE_squish")).arg("serve").current_dir(dir.path()).output().unwrap();
-    assert_eq!(out.status.code(), Some(2));
+#[cfg(feature = "server")]
+fn serve_starts_the_web_ui() {
+    use std::io::{BufRead, BufReader, Read};
+    use std::net::TcpStream;
+
+    let mut child = Command::new(env!("CARGO_BIN_EXE_squish"))
+        .args(["serve", "--port", "0"])
+        .env_remove("SQUISH_HOST")
+        .env_remove("SQUISH_PORT")
+        .stdout(Stdio::piped())
+        .spawn()
+        .unwrap();
+    let mut line = String::new();
+    BufReader::new(child.stdout.take().unwrap()).read_line(&mut line).unwrap();
+    let addr = line.trim().strip_prefix("squish listening on http://").unwrap_or_else(|| panic!("{line}")).to_string();
+    assert!(addr.starts_with("127.0.0.1:"), "binds to localhost by default: {addr}");
+
+    let mut stream = TcpStream::connect(&addr).unwrap();
+    stream.write_all(b"GET /api/health HTTP/1.1\r\nHost: x\r\nConnection: close\r\n\r\n").unwrap();
+    let mut response = String::new();
+    stream.read_to_string(&mut response).unwrap();
+    child.kill().unwrap();
+    child.wait().unwrap();
+    assert!(response.starts_with("HTTP/1.1 200"), "{response}");
+    assert!(response.ends_with("ok"), "{response}");
+}
+
+#[test]
+fn serve_is_reserved_and_checks_its_flags() {
+    let dir = workspace(&[("serve", "palette.png")]);
+    let run =
+        |args: &[&str]| Command::new(env!("CARGO_BIN_EXE_squish")).args(args).current_dir(dir.path()).output().unwrap();
+    assert_eq!(run(&["serve", "--port", "http"]).status.code(), Some(2));
+    assert_eq!(run(&["serve", "--timeout", "0"]).status.code(), Some(2));
+    // A file named serve is compressed when written as a path.
+    assert_eq!(run(&["--effort", "fast", "./serve"]).status.code(), Some(0));
+    assert!(dir.path().join("serve.min").exists());
 }
 
 #[test]
