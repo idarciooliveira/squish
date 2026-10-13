@@ -274,3 +274,165 @@ fn ctrl_c_stops_new_files_and_exits_130() {
     assert!(written.len() < copies, "every file was processed, the interrupt came too late");
     assert!(written.iter().all(|n| n.ends_with(".jpg") && !n.starts_with('.')), "partial files: {written:?}");
 }
+
+/// Entry names and bytes of a zip, in archive order.
+fn zip_entries(path: &Path) -> Vec<(String, Vec<u8>)> {
+    use std::io::Read;
+    let mut zip = zip::ZipArchive::new(fs::File::open(path).unwrap()).unwrap();
+    (0..zip.len())
+        .map(|i| {
+            let mut entry = zip.by_index(i).unwrap();
+            let name = entry.name().unwrap().into_owned();
+            assert_eq!(entry.compression(), zip::CompressionMethod::Stored, "{name}");
+            let mut bytes = Vec::new();
+            entry.read_to_end(&mut bytes).unwrap();
+            (name, bytes)
+        })
+        .collect()
+}
+
+#[test]
+fn dry_run_writes_nothing_in_any_mode() {
+    let dir = workspace(&[("a.png", "photo-rgb.png"), ("b.jpg", "photo.jpg")]);
+    let out = squish(dir.path(), &[".", "-n"]);
+    assert_eq!(out.status.code(), Some(0), "{}", text(&out.stderr));
+    assert!(text(&out.stdout).contains("dry run, nothing written"), "{}", text(&out.stdout));
+    assert!(text(&out.stdout).contains("-> "), "the savings are still reported");
+
+    // --in-place doesn't ask, because nothing gets overwritten.
+    for args in [&["-o", "out"][..], &["--zip", "all.zip"], &["--in-place"]] {
+        let out = squish(dir.path(), &[&[".", "--dry-run"], args].concat());
+        assert_eq!(out.status.code(), Some(0), "{args:?}: {}", text(&out.stderr));
+    }
+    assert_eq!(fs::read_dir(dir.path()).unwrap().count(), 2, "only the two inputs");
+    assert_eq!(fs::read(dir.path().join("a.png")).unwrap(), fs::read(fixture("photo-rgb.png")).unwrap());
+}
+
+#[test]
+fn json_report_follows_adr_0019() {
+    let dir = workspace(&[("img/a.png", "photo-rgb.png"), ("img/anim.png", "animated.png")]);
+    let out = squish(dir.path(), &["img", "missing.png", "-o", "out", "--json"]);
+    assert_eq!(out.status.code(), Some(1), "missing.png fails the run");
+    let report: serde_json::Value = serde_json::from_str(&text(&out.stdout)).unwrap();
+    assert_eq!(report["version"], env!("CARGO_PKG_VERSION"));
+    let summary = &report["summary"];
+    for (key, want) in [("files", 3), ("compressed", 1), ("unsupported", 1), ("failed", 1), ("already_optimized", 0)] {
+        assert_eq!(summary[key], want, "{key}");
+    }
+    assert_eq!(summary["dry_run"], false);
+    assert!(summary["output_bytes"].as_u64() < summary["original_bytes"].as_u64());
+
+    let files = report["files"].as_array().unwrap();
+    let file = |input: &str| files.iter().find(|f| f["input"] == input).unwrap_or_else(|| panic!("{input}"));
+    let a = file("img/a.png");
+    assert_eq!((&a["status"], &a["format"], &a["output"]), (&"compressed".into(), &"png".into(), &"out/a.png".into()));
+    assert_eq!(a["output_bytes"].as_u64(), Some(fs::metadata(dir.path().join("out/a.png")).unwrap().len()));
+    assert!(a.get("error").is_none());
+    let anim = file("img/anim.png");
+    assert_eq!((&anim["status"], &anim["error"]), (&"unsupported".into(), &"animated_image".into()));
+    assert!(anim["output"].is_null());
+    assert_eq!(file("missing.png")["error"], "read_failed");
+
+    // With --dry-run, output still names the path that would have been written.
+    let out = squish(dir.path(), &["img/a.png", "-o", "dry", "-n", "--json"]);
+    let report: serde_json::Value = serde_json::from_str(&text(&out.stdout)).unwrap();
+    assert_eq!(report["files"][0]["output"], "dry/a.png");
+    assert!(!dir.path().join("dry").exists());
+}
+
+#[test]
+fn zip_holds_the_same_files_as_out_dir() {
+    let dir = workspace(&[
+        ("img/top.png", "photo-rgb.png"),
+        ("img/icons/logo.png", "logo-alpha.png"),
+        ("img/photo.jpg", "photo.jpg"),
+        ("img/anim.png", "animated.png"),
+    ]);
+    let out = squish(dir.path(), &["img", "-r", "--zip", "dist/all.zip"]);
+    assert_eq!(out.status.code(), Some(0), "{}", text(&out.stderr));
+    assert_eq!(squish(dir.path(), &["img", "-r", "-o", "out"]).status.code(), Some(0));
+
+    let mut entries = zip_entries(&dir.path().join("dist/all.zip"));
+    entries.sort();
+    let names: Vec<&str> = entries.iter().map(|(n, _)| n.as_str()).collect();
+    assert_eq!(names, ["icons/logo.png", "photo.jpg", "top.png"], "unsupported files stay out");
+    for (name, bytes) in &entries {
+        assert_eq!(bytes, &fs::read(dir.path().join("out").join(name)).unwrap(), "{name}");
+    }
+    assert_eq!(fs::read_dir(dir.path().join("dist")).unwrap().count(), 1, "no temp file left behind");
+
+    // Already-optimized files still go in, so the zip is complete.
+    let out = squish(dir.path(), &["out/top.png", "--lossless", "--zip", "again.zip", "--json"]);
+    let report: serde_json::Value = serde_json::from_str(&text(&out.stdout)).unwrap();
+    assert_eq!(report["files"][0]["status"], "already_optimized");
+    assert_eq!(report["files"][0]["output"], "top.png");
+    assert_eq!(zip_entries(&dir.path().join("again.zip")).len(), 1);
+}
+
+#[test]
+fn zip_collisions_and_conflicts_are_usage_errors() {
+    let dir = workspace(&[("a/logo.png", "logo-alpha.png"), ("b/logo.png", "logo-alpha.png")]);
+    let out = squish(dir.path(), &["a/logo.png", "b/logo.png", "--zip", "all.zip"]);
+    assert_eq!(out.status.code(), Some(2));
+    assert!(text(&out.stderr).contains("zip entry logo.png"), "{}", text(&out.stderr));
+    assert_eq!(squish(dir.path(), &["a", "--zip", "all.zip", "-o", "out"]).status.code(), Some(2));
+    assert_eq!(squish(dir.path(), &["a/logo.png", "--zip", "a/logo.png"]).status.code(), Some(2));
+    assert_eq!(squish(dir.path(), &["-", "--zip", "all.zip"]).status.code(), Some(2));
+    assert_eq!(squish(dir.path(), &["-", "--json"]).status.code(), Some(2));
+    assert!(!dir.path().join("all.zip").exists() && !dir.path().join("out").exists());
+}
+
+#[test]
+fn stdin_dry_run_reports_without_writing_stdout() {
+    let input = fs::read(fixture("photo.jpg")).unwrap();
+    let mut child = Command::new(env!("CARGO_BIN_EXE_squish"))
+        .args(["--effort", "fast", "-n", "-"])
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .unwrap();
+    child.stdin.take().unwrap().write_all(&input).unwrap();
+    let out = child.wait_with_output().unwrap();
+    assert_eq!(out.status.code(), Some(0), "{}", text(&out.stderr));
+    assert!(out.stdout.is_empty());
+    assert!(text(&out.stderr).contains("-> "), "{}", text(&out.stderr));
+}
+
+#[cfg(unix)]
+#[test]
+fn ctrl_c_during_zip_keeps_a_valid_zip_of_the_finished_files() {
+    let copies = 300;
+    let dir = tempfile::tempdir().unwrap();
+    for i in 0..copies {
+        fs::copy(fixture("photo.jpg"), dir.path().join(format!("{i:03}.jpg"))).unwrap();
+    }
+    let child = Command::new(env!("CARGO_BIN_EXE_squish"))
+        .current_dir(dir.path())
+        .args([".", "-j", "1", "--zip", "out/all.zip"])
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .unwrap();
+    // The temp zip grows as entries land, so a non-empty one means the handler is live.
+    let started = std::time::Instant::now();
+    let temp_size = || {
+        fs::read_dir(dir.path().join("out"))
+            .map(|d| d.map(|e| e.unwrap().metadata().unwrap().len()).sum::<u64>())
+            .unwrap_or(0)
+    };
+    while temp_size() < 1000 {
+        assert!(started.elapsed().as_secs() < 60, "no zip entry after 60 s");
+        std::thread::sleep(std::time::Duration::from_millis(10));
+    }
+    let kill = Command::new("kill").args(["-INT", &child.id().to_string()]).status().unwrap();
+    assert!(kill.success());
+    let out = child.wait_with_output().unwrap();
+    assert_eq!(out.status.code(), Some(130), "{}", text(&out.stderr));
+
+    let entries = zip_entries(&dir.path().join("out/all.zip"));
+    assert!(!entries.is_empty() && entries.len() < copies, "{} entries", entries.len());
+    assert!(entries.iter().all(|(_, bytes)| bytes.starts_with(&[0xFF, 0xD8])));
+    assert_eq!(fs::read_dir(dir.path().join("out")).unwrap().count(), 1, "no temp file left behind");
+}

@@ -4,11 +4,13 @@ use std::io::IsTerminal;
 use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::time::{Duration, Instant};
 
 use indicatif::{ProgressBar, ProgressDrawTarget, ProgressStyle};
 use rayon::prelude::*;
 use squish_core::{Error, Format, Options, compress};
 
+use crate::archive::Archive;
 use crate::inputs::Input;
 use crate::plan::Mode;
 use crate::write::atomic_write;
@@ -22,26 +24,45 @@ pub enum Status {
     Failed,
 }
 
+impl Status {
+    /// The name from ADR-0017, used in the JSON report.
+    pub fn name(self) -> &'static str {
+        match self {
+            Status::Compressed => "compressed",
+            Status::AlreadyOptimized => "already_optimized",
+            Status::Unsupported => "unsupported",
+            Status::Failed => "failed",
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct FileResult {
     pub input: PathBuf,
+    /// Where the output went, or would have gone with `--dry-run`. A zip entry name with
+    /// `--zip`. `None` when nothing was produced.
+    pub output: Option<PathBuf>,
     pub status: Status,
     pub format: Option<Format>,
     pub original_bytes: u64,
     pub output_bytes: u64,
     /// Error code (ADR-0017, plus the CLI's own I/O codes) and message.
     pub error: Option<(&'static str, String)>,
+    /// Reading, compressing and writing this one file.
+    pub elapsed: Duration,
 }
 
 impl FileResult {
     fn failed(input: &Path, code: &'static str, message: String) -> Self {
         FileResult {
             input: input.to_path_buf(),
+            output: None,
             status: Status::Failed,
             format: None,
             original_bytes: 0,
             output_bytes: 0,
             error: Some((code, message)),
+            elapsed: Duration::ZERO,
         }
     }
 }
@@ -74,6 +95,10 @@ pub struct Job<'a> {
     pub inputs: &'a [Input],
     pub outputs: &'a [PathBuf],
     pub mode: &'a Mode,
+    /// Where outputs go with `--zip`. `None` in the other modes and with `--dry-run`.
+    pub archive: Option<&'a Archive>,
+    /// Compress, but write nothing.
+    pub dry_run: bool,
     pub options: &'a Options,
     pub jobs: usize,
     pub quiet: bool,
@@ -92,7 +117,9 @@ pub fn run(job: &Job) -> Vec<FileResult> {
                 if job.interrupted.load(Ordering::SeqCst) {
                     return None;
                 }
-                let result = process(&input.path, output, job.mode, job.options);
+                let started = Instant::now();
+                let mut result = process(&input.path, output, job);
+                result.elapsed = started.elapsed();
                 if let (Status::Failed, Some((_, message))) = (result.status, &result.error) {
                     bar.suspend(|| eprintln!("squish: {}: {message}", input.path.display()));
                 }
@@ -118,13 +145,13 @@ fn progress_bar(len: u64, quiet: bool) -> ProgressBar {
     bar
 }
 
-fn process(input: &Path, output: &Path, mode: &Mode, options: &Options) -> FileResult {
+fn process(input: &Path, output: &Path, job: &Job) -> FileResult {
     let bytes = match std::fs::read(input) {
         Ok(b) => b,
         Err(e) => return FileResult::failed(input, "read_failed", e.to_string()),
     };
     let original_bytes = bytes.len() as u64;
-    let out = match compress_bytes(&bytes, options) {
+    let out = match compress_bytes(&bytes, job.options) {
         Outcome::Done(out) => out,
         Outcome::Unsupported(e) => {
             let format = match e {
@@ -134,31 +161,40 @@ fn process(input: &Path, output: &Path, mode: &Mode, options: &Options) -> FileR
             };
             return FileResult {
                 input: input.to_path_buf(),
+                output: None,
                 status: Status::Unsupported,
                 format,
                 original_bytes,
                 output_bytes: 0,
                 error: Some((e.code(), e.to_string())),
+                elapsed: Duration::ZERO,
             };
         }
         Outcome::Failed(code, message) => return FileResult::failed(input, code, message),
     };
 
     // An already-optimized file still gets its copy, except in place, where there's nothing to do.
-    let in_place = *mode == Mode::InPlace;
-    if !(in_place && out.kept_original) {
-        let permissions_from = in_place.then_some(input);
-        if let Err(e) = atomic_write(output, &out.bytes, permissions_from) {
-            let message = format!("could not write {}: {e}", output.display());
+    let in_place = *job.mode == Mode::InPlace;
+    if !job.dry_run && !(in_place && out.kept_original) {
+        let written = match job.archive {
+            Some(archive) => archive
+                .add(&output.to_string_lossy(), &out.bytes)
+                .map_err(|e| format!("could not add {} to the zip: {e}", output.display())),
+            None => atomic_write(output, &out.bytes, in_place.then_some(input))
+                .map_err(|e| format!("could not write {}: {e}", output.display())),
+        };
+        if let Err(message) = written {
             return FileResult::failed(input, "write_failed", message);
         }
     }
     FileResult {
         input: input.to_path_buf(),
+        output: Some(output.to_path_buf()),
         status: if out.kept_original { Status::AlreadyOptimized } else { Status::Compressed },
         format: Some(out.format),
         original_bytes,
         output_bytes: out.bytes.len() as u64,
         error: None,
+        elapsed: Duration::ZERO,
     }
 }
