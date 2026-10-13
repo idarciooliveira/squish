@@ -139,6 +139,7 @@ fn stdin_to_stdout() {
 }
 
 #[test]
+#[cfg(feature = "server")]
 fn serve_starts_the_web_ui() {
     use std::io::{BufRead, BufReader, Read};
     use std::net::TcpStream;
