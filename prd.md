@@ -296,7 +296,7 @@ The metric work is done: fast-ssim2 at about 1 MP, with starting targets from th
 
 - [ ] `webp.rs`: detect lossy or lossless, encode with libwebp
 - [ ] Skip animated files cleanly
-- [ ] `--zip`, `--json`, `--dry-run`
+- [x] `--zip`, `--json`, `--dry-run`
 - [ ] Effort presets
 - [ ] Release profile, musl static build, binary size check
 - [ ] Check the AVIF trigger in ADR-0012. If it fires, add `avif.rs` behind the `avif` feature, with a speed preset and a timeout.

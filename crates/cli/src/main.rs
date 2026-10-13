@@ -1,5 +1,6 @@
 //! squish: compress PNG and JPEG files from the command line (ADR-0019).
 
+mod archive;
 mod inputs;
 mod plan;
 mod run;
@@ -17,12 +18,14 @@ use std::time::Instant;
 use clap::Parser;
 use squish_core::{Effort, MetaPolicy, Options, Quality};
 
+use crate::archive::Archive;
 use crate::plan::Mode;
 use crate::run::{Job, Outcome, Status, compress_bytes};
 use crate::summary::Summary;
 
 const USAGE: u8 = 2;
 const INTERRUPTED: u8 = 130;
+const OUTPUT: &str = "Output (default writes name.min.ext next to the input)";
 
 #[derive(Parser, Debug)]
 #[command(name = "squish", version, about = "Compress PNG and JPEG images, keeping their format")]
@@ -32,12 +35,16 @@ struct Cli {
     paths: Vec<PathBuf>,
 
     /// Mirror inputs into DIR with their original names
-    #[arg(short, long, value_name = "DIR", help_heading = "Output (default writes name.min.ext next to the input)")]
+    #[arg(short, long, value_name = "DIR", help_heading = OUTPUT)]
     out_dir: Option<PathBuf>,
 
     /// Overwrite the inputs (asks first unless --yes)
-    #[arg(long, conflicts_with = "out_dir", help_heading = "Output (default writes name.min.ext next to the input)")]
+    #[arg(long, conflicts_with = "out_dir", help_heading = OUTPUT)]
     in_place: bool,
+
+    /// Write every output into one STORE zip
+    #[arg(long, value_name = "FILE", conflicts_with_all = ["out_dir", "in_place"], help_heading = OUTPUT)]
+    zip: Option<PathBuf>,
 
     /// Descend into folders
     #[arg(short, long, help_heading = "Inputs")]
@@ -66,6 +73,14 @@ struct Cli {
     /// Parallel jobs [default: core count]
     #[arg(short, long, value_name = "N", help_heading = "Run")]
     jobs: Option<NonZeroUsize>,
+
+    /// Compress in memory, write nothing, report savings
+    #[arg(short = 'n', long, help_heading = "Run")]
+    dry_run: bool,
+
+    /// Print a JSON report on stdout instead of text
+    #[arg(long, help_heading = "Run")]
+    json: bool,
 
     /// Don't ask before --in-place
     #[arg(short, long, help_heading = "Run")]
@@ -115,10 +130,10 @@ fn usage_error(message: impl std::fmt::Display) -> ExitCode {
 
 /// `squish -`: one image from stdin to stdout, the summary on stderr so the pipe stays clean.
 fn stdin_mode(cli: &Cli) -> ExitCode {
-    if cli.paths.len() > 1 || cli.out_dir.is_some() || cli.in_place {
-        return usage_error("- can't be mixed with other paths, --out-dir or --in-place");
+    if cli.paths.len() > 1 || cli.out_dir.is_some() || cli.in_place || cli.zip.is_some() || cli.json {
+        return usage_error("- can't be mixed with other paths, --out-dir, --in-place, --zip or --json");
     }
-    if io::stdout().is_terminal() {
+    if !cli.dry_run && io::stdout().is_terminal() {
         return usage_error("refusing to write image bytes to a terminal; redirect stdout to a file");
     }
     let started = Instant::now();
@@ -140,7 +155,9 @@ fn stdin_mode(cli: &Cli) -> ExitCode {
             return ExitCode::FAILURE;
         }
     };
-    if let Err(e) = io::stdout().lock().write_all(&out).and_then(|()| io::stdout().flush()) {
+    if !cli.dry_run
+        && let Err(e) = io::stdout().lock().write_all(&out).and_then(|()| io::stdout().flush())
+    {
         eprintln!("squish: could not write stdout: {e}");
         return ExitCode::FAILURE;
     }
@@ -158,10 +175,11 @@ fn stdin_mode(cli: &Cli) -> ExitCode {
 
 fn files_mode(cli: &Cli) -> ExitCode {
     let started = Instant::now();
-    let mode = match (&cli.out_dir, cli.in_place) {
-        (Some(dir), _) => Mode::OutDir(dir.clone()),
-        (None, true) => Mode::InPlace,
-        (None, false) => Mode::Suffix,
+    let mode = match (&cli.out_dir, cli.in_place, &cli.zip) {
+        (Some(dir), _, _) => Mode::OutDir(dir.clone()),
+        (None, true, _) => Mode::InPlace,
+        (None, false, Some(zip)) => Mode::Zip(zip.clone()),
+        (None, false, None) => Mode::Suffix,
     };
     let collected = match inputs::collect(&cli.paths, cli.recursive, cli.out_dir.as_deref()) {
         Ok(c) => c,
@@ -171,7 +189,7 @@ fn files_mode(cli: &Cli) -> ExitCode {
         Ok(o) => o,
         Err(e) => return usage_error(e),
     };
-    if mode == Mode::InPlace && !cli.yes && !collected.inputs.is_empty() {
+    if mode == Mode::InPlace && !cli.yes && !cli.dry_run && !collected.inputs.is_empty() {
         match confirm_in_place(collected.inputs.len()) {
             Ok(true) => {}
             Ok(false) => {
@@ -182,8 +200,20 @@ fn files_mode(cli: &Cli) -> ExitCode {
         }
     }
 
+    let archive = match &mode {
+        Mode::Zip(path) if !cli.dry_run => match Archive::create(path) {
+            Ok(a) => Some(a),
+            Err(e) => {
+                eprintln!("squish: could not create {}: {e}", path.display());
+                return ExitCode::FAILURE;
+            }
+        },
+        _ => None,
+    };
+
     // First Ctrl-C: stop starting files, finish the running ones. Second: exit at once.
-    // Every write is a rename, so both leave no partial files.
+    // Every write is a rename, so both leave no partial files. A zip keeps the entries
+    // that finished, so it matches the summary.
     let interrupted = Arc::new(AtomicBool::new(false));
     let flag = Arc::clone(&interrupted);
     let _ = ctrlc::set_handler(move || {
@@ -198,23 +228,36 @@ fn files_mode(cli: &Cli) -> ExitCode {
         inputs: &collected.inputs,
         outputs: &outputs,
         mode: &mode,
+        archive: archive.as_ref(),
+        dry_run: cli.dry_run,
         options: &options,
         jobs,
-        quiet: cli.quiet,
+        quiet: cli.quiet || cli.json,
         interrupted: &interrupted,
     });
 
+    // A zip that can't be finished loses every entry, so the run failed whatever the files did.
+    let mut zip_failed = false;
+    if let (Some(archive), Mode::Zip(path)) = (archive, &mode)
+        && let Err(e) = archive.finish()
+    {
+        eprintln!("squish: could not write {}: {e}", path.display());
+        zip_failed = true;
+    }
+
     let was_interrupted = interrupted.load(Ordering::SeqCst);
-    if !cli.quiet {
-        let text = Summary {
-            results: &results,
-            problems: &collected.problems,
-            not_started: collected.inputs.len() - results.len(),
-            elapsed: started.elapsed(),
-            jobs,
-        }
-        .render();
-        print!("{text}");
+    let summary = Summary {
+        results: &results,
+        problems: &collected.problems,
+        not_started: collected.inputs.len() - results.len(),
+        elapsed: started.elapsed(),
+        jobs,
+        dry_run: cli.dry_run,
+    };
+    if cli.json {
+        print!("{}", summary.json());
+    } else if !cli.quiet {
+        print!("{}", summary.render());
     } else {
         for (path, message) in &collected.problems {
             eprintln!("squish: {}: {message}", path.display());
@@ -223,7 +266,7 @@ fn files_mode(cli: &Cli) -> ExitCode {
 
     if was_interrupted {
         ExitCode::from(INTERRUPTED)
-    } else if !collected.problems.is_empty() || results.iter().any(|r| r.status == Status::Failed) {
+    } else if zip_failed || !collected.problems.is_empty() || results.iter().any(|r| r.status == Status::Failed) {
         ExitCode::FAILURE
     } else {
         ExitCode::SUCCESS
@@ -268,5 +311,13 @@ mod tests {
         assert_eq!(cli.options().quality, Quality::Lossless);
         assert!(Cli::try_parse_from(["squish", "--lossless", "--quality", "80", "a.png"]).is_err());
         assert!(Cli::try_parse_from(["squish", "-o", "out", "--in-place", "a.png"]).is_err());
+    }
+
+    #[test]
+    fn zip_conflicts_with_the_other_output_modes() {
+        assert!(Cli::try_parse_from(["squish", "--zip", "a.zip", "-o", "out", "a.png"]).is_err());
+        assert!(Cli::try_parse_from(["squish", "--zip", "a.zip", "--in-place", "a.png"]).is_err());
+        let cli = Cli::parse_from(["squish", "--zip", "a.zip", "-n", "--json", "a.png"]);
+        assert!(cli.dry_run && cli.json && cli.zip.is_some());
     }
 }

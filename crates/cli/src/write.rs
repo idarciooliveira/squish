@@ -34,7 +34,7 @@ pub fn atomic_write(dest: &Path, bytes: &[u8], keep_permissions: Option<&Path>) 
     result
 }
 
-fn temp_path(dir: &Path, dest: &Path) -> PathBuf {
+pub fn temp_path(dir: &Path, dest: &Path) -> PathBuf {
     let name = dest.file_name().map(|n| n.to_string_lossy()).unwrap_or_default();
     let n = COUNTER.fetch_add(1, Ordering::Relaxed);
     dir.join(format!(".{name}.squish-{}-{n}.tmp", std::process::id()))

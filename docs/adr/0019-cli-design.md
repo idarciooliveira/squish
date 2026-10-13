@@ -109,7 +109,8 @@ One document at the end, so `jq` works on it directly:
   "version": "0.1.0",
   "summary": {
     "files": 48, "compressed": 44, "already_optimized": 3, "unsupported": 1, "failed": 0,
-    "original_bytes": 191260262, "output_bytes": 54421094, "elapsed_ms": 3204, "jobs": 12
+    "not_started": 0, "original_bytes": 191260262, "output_bytes": 54421094, "elapsed_ms": 3204,
+    "jobs": 12, "dry_run": false
   },
   "files": [
     { "input": "images/a.png", "output": "out/a.png", "format": "png", "status": "compressed",
@@ -120,7 +121,14 @@ One document at the end, so `jq` works on it directly:
 }
 ```
 
-`status` and `error` use the names from ADR-0017. With `--dry-run`, `output` holds the path that would have been written.
+`status` and `error` use the names from ADR-0017. `error` and `message` appear only on files that have them. With `--dry-run`, `output` holds the path that would have been written. With `--zip`, it holds the entry name. A folder the walk could not read shows up as a `failed` file with the error `read_failed`. `not_started` counts files skipped by Ctrl-C. `--json` hides the progress bar and the text summary, even with `--quiet`, and per-file errors still go to stderr.
+
+### Zip and dry runs
+
+- `--zip` builds the archive in a temp file next to the destination and renames it at the end. Workers add each file as it finishes, so entries land in completion order, and the zip never holds more than one file's bytes in memory.
+- A zip can't replace one of the inputs, and two inputs with the same entry name stop the run before any work, as with `-o`. `--zip` can't be combined with `-o`, `--in-place` or `-`.
+- On Ctrl-C the zip is still finished with the entries that completed, so it matches the summary. The exit code is still `130`. If writing the zip fails, no zip is left behind and the run exits `1`.
+- `--dry-run` compresses everything and writes nothing: no files, no zip, nothing on stdout with `-`. It still runs the collision checks. With `--in-place` it doesn't ask, since nothing gets overwritten.
 
 ### Exit codes
 

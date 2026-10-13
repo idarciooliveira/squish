@@ -15,6 +15,8 @@ pub enum Mode {
     OutDir(PathBuf),
     /// Replace the inputs.
     InPlace,
+    /// One STORE zip at this path. Outputs are entry names, laid out like `OutDir`.
+    Zip(PathBuf),
 }
 
 impl Mode {
@@ -23,8 +25,15 @@ impl Mode {
             Mode::Suffix => min_name(&input.path),
             Mode::OutDir(dir) => dir.join(&input.rel),
             Mode::InPlace => input.path.clone(),
+            Mode::Zip(_) => PathBuf::from(entry_name(&input.rel)),
         }
     }
+}
+
+/// `icons/logo.png` on every platform. Zip entries always use forward slashes.
+pub fn entry_name(rel: &Path) -> String {
+    let parts: Vec<_> = rel.components().map(|c| c.as_os_str().to_string_lossy()).collect();
+    parts.join("/")
 }
 
 /// `images/logo.png` becomes `images/logo.min.png`. The extension stays as written.
@@ -46,6 +55,24 @@ pub fn outputs(inputs: &[Input], mode: &Mode) -> Result<Vec<PathBuf>, String> {
         return Ok(outputs);
     }
     let sources: HashMap<PathBuf, &Path> = inputs.iter().map(|i| (key(&i.path), i.path.as_path())).collect();
+    if let Mode::Zip(zip) = mode {
+        if let Some(source) = sources.get(&key(zip)) {
+            return Err(format!("--zip {} would overwrite the input {}", zip.display(), source.display()));
+        }
+        // Entry names never touch the disk, so they compare as written.
+        let mut taken: HashMap<&Path, &Path> = HashMap::new();
+        for (input, entry) in inputs.iter().zip(&outputs) {
+            if let Some(first) = taken.insert(entry, &input.path) {
+                return Err(format!(
+                    "{} and {} would both be written to the zip entry {}",
+                    first.display(),
+                    input.path.display(),
+                    entry.display()
+                ));
+            }
+        }
+        return Ok(outputs);
+    }
     let mut taken: HashMap<PathBuf, &Path> = HashMap::new();
     for (input, output) in inputs.iter().zip(&outputs) {
         let k = key(output);
@@ -94,6 +121,18 @@ mod tests {
         assert_eq!(Mode::Suffix.output_path(&logo), Path::new("images/icons/logo.min.png"));
         assert_eq!(Mode::OutDir("out".into()).output_path(&logo), Path::new("out/icons/logo.png"));
         assert_eq!(Mode::InPlace.output_path(&logo), Path::new("images/icons/logo.png"));
+        assert_eq!(Mode::Zip("all.zip".into()).output_path(&logo), Path::new("icons/logo.png"));
+    }
+
+    #[test]
+    fn zip_entries_collide_by_name_and_the_zip_cannot_replace_an_input() {
+        let zip = Mode::Zip("all.zip".into());
+        let inputs = [input("a/logo.png", "logo.png"), input("b/logo.png", "logo.png")];
+        assert!(outputs(&inputs, &zip).unwrap_err().contains("zip entry logo.png"));
+        let inputs = [input("a/logo.png", "logo.png"), input("b/logo.png", "b/logo.png")];
+        assert!(outputs(&inputs, &zip).is_ok());
+        let inputs = [input("all.zip", "all.zip")];
+        assert!(outputs(&inputs, &zip).unwrap_err().contains("would overwrite the input"));
     }
 
     #[test]
