@@ -1,6 +1,6 @@
 # ADR-0024: Per-file quality search is the default
 
-- Status: Accepted. The metric and targets are set in ADR-0026.
+- Status: Accepted. The metric and targets are set in ADR-0026. ADR-0028 keeps WebP on a fixed quality for now.
 - Date: 2026-10-12
 - Supersedes: in ADR-0009, the fixed `auto` starting values and the deferral of the automatic mode to Phase 4. The rest of ADR-0009 stands.
 

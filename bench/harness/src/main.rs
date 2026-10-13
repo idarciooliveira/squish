@@ -4,8 +4,13 @@
 //! fixed-setting encode, then scores both squish's and TinyPNG's output with dssim,
 //! the referee, and with the shipped metric. Files run one at a time so CPU time is clean.
 //!
-//! usage: harness [--images DIR] [--tinypng DIR] [--out FILE] [--only png|jpeg]
+//! WebP files are reported as `webp`, or `webp-lossless` for lossless sources, which
+//! `--only webp` takes together. squish-core has no WebP codec yet, so until it does
+//! every WebP file is listed under "skipped".
+//!
+//! usage: harness [--images DIR] [--tinypng DIR] [--out FILE] [--only png|jpeg|webp]
 //!                [--effort fast|default|max] [--jpeg-target N] [--png-target N]
+//!                [--webp-target N]
 
 use std::error::Error;
 use std::fs;
@@ -29,6 +34,7 @@ struct Args {
     effort: Effort,
     jpeg_target: Option<f64>,
     png_target: Option<f64>,
+    webp_target: Option<f64>,
 }
 
 fn parse_args() -> Res<Args> {
@@ -40,6 +46,7 @@ fn parse_args() -> Res<Args> {
         effort: Effort::Default,
         jpeg_target: None,
         png_target: None,
+        webp_target: None,
     };
     let mut it = std::env::args().skip(1);
     while let Some(flag) = it.next() {
@@ -48,10 +55,17 @@ fn parse_args() -> Res<Args> {
             "--images" => a.images = value()?.into(),
             "--tinypng" => a.tinypng = value()?.into(),
             "--out" => a.out = value()?.into(),
-            "--only" => a.only = Some(value()?),
+            "--only" => {
+                let only = value()?;
+                if !["png", "jpeg", "webp"].contains(&only.as_str()) {
+                    return Err(format!("--only takes png, jpeg or webp, not {only}").into());
+                }
+                a.only = Some(only);
+            }
             "--effort" => a.effort = value()?.parse()?,
             "--jpeg-target" => a.jpeg_target = Some(value()?.parse()?),
             "--png-target" => a.png_target = Some(value()?.parse()?),
+            "--webp-target" => a.webp_target = Some(value()?.parse()?),
             other => return Err(format!("unknown flag {other}").into()),
         }
     }
@@ -146,6 +160,19 @@ fn write_csv(path: &Path, rows: &[Row]) -> Res<()> {
     Ok(())
 }
 
+/// True when a WebP file has a lossless (`VP8L`) bitstream. Walks the RIFF chunks.
+fn webp_is_lossless(bytes: &[u8]) -> bool {
+    let mut at = 12;
+    while let Some(header) = bytes.get(at..at + 8) {
+        if &header[..4] == b"VP8L" {
+            return true;
+        }
+        let size = u32::from_le_bytes([header[4], header[5], header[6], header[7]]) as usize;
+        at += 8 + size + (size & 1);
+    }
+    false
+}
+
 fn decode_rgba(bytes: &[u8]) -> Res<image::RgbaImage> {
     Ok(image::load_from_memory(bytes)?.to_rgba8())
 }
@@ -178,8 +205,13 @@ fn main() -> Res<()> {
             skipped.push(format!("{name}: not an image squish knows"));
             continue;
         };
-        let format_name = format.name();
-        if !matches!(format, Format::Png | Format::Jpeg) || args.only.as_deref().is_some_and(|o| o != format_name) {
+        let format_name = match format {
+            Format::WebP if webp_is_lossless(&original) => "webp-lossless",
+            other => other.name(),
+        };
+        if !matches!(format, Format::Png | Format::Jpeg | Format::WebP)
+            || args.only.as_deref().is_some_and(|o| !format_name.starts_with(o))
+        {
             continue;
         }
         let Ok(tiny) = fs::read(args.tinypng.join(&name)) else {
@@ -188,11 +220,19 @@ fn main() -> Res<()> {
         };
 
         let mut options = Options { effort: args.effort, ..Options::default() };
-        options.target = if format == Format::Jpeg { args.jpeg_target } else { args.png_target };
+        options.target = match format {
+            Format::Jpeg => args.jpeg_target,
+            Format::WebP => args.webp_target,
+            _ => args.png_target,
+        };
 
         // One plain encode: the same pipeline at a fixed setting, with no search.
         let plain = Options {
-            quality: Quality::Fixed(if format == Format::Jpeg { 66 } else { 100 }),
+            quality: Quality::Fixed(match format {
+                Format::Jpeg => 66,
+                Format::WebP => 71,
+                _ => 100,
+            }),
             effort: Effort::Default,
             ..Options::default()
         };
@@ -267,7 +307,7 @@ fn main() -> Res<()> {
 
 fn summarize(rows: &[Row], skipped: &[String], args: &Args) {
     println!("\n=== summary (effort {}) ===", args.effort);
-    for format in ["jpeg", "png"] {
+    for format in ["jpeg", "png", "webp", "webp-lossless"] {
         let set: Vec<&Row> = rows.iter().filter(|r| r.format == format).collect();
         if set.is_empty() {
             continue;
