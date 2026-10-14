@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | Owner | Idarcio Oliveira (@idarciooliveira) |
-| Status | Phase 1 done. Phase 2 in progress: the WebP codec is done and NFR-1 confirmed; effort presets, the static build and the AVIF trigger check remain. Phase 3 (web version) built. |
+| Status | Phase 1 done. Phase 2 in progress: the WebP codec is done and NFR-1 confirmed; the static build and the AVIF trigger check remain. Phase 3 (web version) built. |
 | Last updated | 2026-10-14 |
 | Decisions | [`docs/adr/`](docs/adr/README.md) (ADR-0001 to ADR-0028) |
 

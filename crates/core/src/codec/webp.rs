@@ -222,7 +222,6 @@ mod tests {
         assert_eq!(QUALITY, 71);
         assert_eq!((method(Effort::Fast), method(Effort::Default), method(Effort::Max)), (2, 4, 6));
     }
-    }
 
     #[test]
     fn lossy_alpha_survives_with_the_alpha_flag_set() {
@@ -248,5 +247,12 @@ mod tests {
         assert!(chunks.iter().any(|c| &c.kind == b"ALPH"), "ALPH chunk survives");
         let vp8x = chunks.iter().find(|c| &c.kind == b"VP8X").expect("extended container");
         assert_eq!(vp8x.payload[0] & 0x10, 0x10, "alpha flag is set");
+        // Every alpha value survives: the alpha plane is compressed losslessly,
+        // so only RGB may move. Both sides are decoded, so this checks the round trip.
+        let (before, w, h) = decode_rgba(&input, 100_000).unwrap();
+        let (after, ow, oh) = decode_rgba(&out.bytes, 100_000).unwrap();
+        assert_eq!((ow, oh), (w, h));
+        let alpha = |rgba: &[u8]| rgba.chunks_exact(4).map(|p| p[3]).collect::<Vec<_>>();
+        assert_eq!(alpha(&after), alpha(&before), "transparency changed");
     }
 }
