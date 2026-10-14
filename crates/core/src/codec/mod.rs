@@ -7,6 +7,7 @@ use crate::options::Options;
 
 pub(crate) mod jpeg;
 pub(crate) mod png;
+pub(crate) mod webp;
 
 pub(crate) struct Encoded {
     pub bytes: Vec<u8>,
@@ -27,6 +28,7 @@ pub(crate) fn decode_rgba(format: Format, bytes: &[u8], max_pixels: u64) -> Resu
     match format {
         Format::Png => png::decode_rgba(bytes, max_pixels),
         Format::Jpeg => jpeg::decode_rgba(bytes),
-        Format::WebP | Format::Avif => Err(Error::Unsupported(Some(format))),
+        Format::WebP => webp::decode_rgba(bytes, max_pixels),
+        Format::Avif => Err(Error::Unsupported(Some(format))),
     }
 }

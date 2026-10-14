@@ -74,7 +74,7 @@ pub fn compress(bytes: &[u8], options: &Options) -> Result<Output, Error> {
 
 /// Scores `candidate` against `original` with the metric the search uses (ADR-0026).
 ///
-/// Both must be PNG or JPEG files of the same size. 100 means identical.
+/// Both must be PNG, JPEG or WebP files of the same size. 100 means identical.
 pub fn score(original: &[u8], candidate: &[u8]) -> Result<f64, Error> {
     let decode = |bytes: &[u8]| {
         let format = detect(bytes).ok_or(Error::Unsupported(None))?;
