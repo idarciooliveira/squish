@@ -60,7 +60,7 @@ async fn info_reports_version_formats_limits_and_defaults() {
     assert_eq!(response.status(), StatusCode::OK);
     let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
     assert_eq!(json["version"], env!("CARGO_PKG_VERSION"));
-    assert_eq!(json["formats"], serde_json::json!(["png", "jpeg"]));
+    assert_eq!(json["formats"], serde_json::json!(["png", "jpeg", "webp"]));
     assert_eq!(
         json["limits"],
         serde_json::json!({ "max_body_bytes": 1000, "max_pixels": 2000, "timeout_ms": 3000, "jobs": 4 })

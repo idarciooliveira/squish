@@ -394,8 +394,6 @@ pub(crate) fn png_insert_after_ihdr(png: Vec<u8>, extra: &[&[u8]]) -> Vec<u8> {
 
 // WebP
 
-// Used by codec/webp.rs from the next commit.
-#[allow(dead_code)]
 pub(crate) struct WebpChunk<'a> {
     pub kind: [u8; 4],
     /// The payload, without the 8-byte header or the pad byte.
@@ -403,8 +401,6 @@ pub(crate) struct WebpChunk<'a> {
 }
 
 /// Walks the top-level chunks after `WEBP`, stopping at the first damaged one.
-// Used by codec/webp.rs from the next commit.
-#[allow(dead_code)]
 pub(crate) fn webp_chunks(bytes: &[u8]) -> Vec<WebpChunk<'_>> {
     let mut chunks = Vec::new();
     if bytes.get(..4) != Some(b"RIFF") || bytes.get(8..12) != Some(b"WEBP") {
@@ -424,23 +420,17 @@ pub(crate) fn webp_chunks(bytes: &[u8]) -> Vec<WebpChunk<'_>> {
 }
 
 /// True when the image data is a `VP8L` bitstream. A lossy file with alpha has `ALPH` + `VP8 `.
-// Used by codec/webp.rs from the next commit.
-#[allow(dead_code)]
 pub(crate) fn webp_is_lossless(bytes: &[u8]) -> bool {
     webp_chunks(bytes).iter().any(|c| &c.kind == b"VP8L")
 }
 
 /// Orientation 1 to 8 from a WebP `EXIF` payload, with or without the `Exif\0\0` prefix.
-// Used by codec/webp.rs from the next commit.
-#[allow(dead_code)]
 pub(crate) fn webp_orientation(exif: &[u8]) -> Option<u8> {
     tiff_orientation(exif.strip_prefix(EXIF_SIGNATURE).unwrap_or(exif))
 }
 
 /// The chunks around the image data that go into the output.
 #[derive(Debug, Default, PartialEq)]
-// Used by codec/webp.rs from the next commit.
-#[allow(dead_code)]
 pub(crate) struct WebpMeta {
     pub icc: Option<Vec<u8>>,
     pub exif: Option<Vec<u8>>,
@@ -451,12 +441,8 @@ pub(crate) struct WebpMeta {
 
 /// Image-data chunks that never carry metadata: the bitstreams, their alpha sidecar,
 /// the container header they hang under, and animation frames, which squish rejects.
-// Used by codec/webp.rs from the next commit.
-#[allow(dead_code)]
 const WEBP_IMAGE_CHUNKS: [[u8; 4]; 6] = [*b"VP8X", *b"VP8 ", *b"VP8L", *b"ALPH", *b"ANIM", *b"ANMF"];
 
-// Used by codec/webp.rs from the next commit.
-#[allow(dead_code)]
 pub(crate) fn webp_meta(bytes: &[u8], policy: MetaPolicy) -> WebpMeta {
     let chunks = webp_chunks(bytes);
     let mut meta = WebpMeta::default();
@@ -493,8 +479,6 @@ pub(crate) fn webp_meta(bytes: &[u8], policy: MetaPolicy) -> WebpMeta {
     meta
 }
 
-// Used by codec/webp.rs from the next commit.
-#[allow(dead_code)]
 fn webp_push(out: &mut Vec<u8>, kind: &[u8; 4], payload: &[u8]) {
     out.extend_from_slice(kind);
     out.extend_from_slice(&(payload.len() as u32).to_le_bytes());
@@ -506,8 +490,6 @@ fn webp_push(out: &mut Vec<u8>, kind: &[u8; 4], payload: &[u8]) {
 
 /// Builds a WebP file from the image chunks of `encoded` (a complete file from libwebp,
 /// or the original) and `meta`. `width` and `height` are the canvas size.
-// Used by codec/webp.rs from the next commit.
-#[allow(dead_code)]
 pub(crate) fn webp_assemble(encoded: &[u8], meta: &WebpMeta, width: u32, height: u32) -> Vec<u8> {
     let chunks = webp_chunks(encoded);
     let image: Vec<&WebpChunk<'_>> =
