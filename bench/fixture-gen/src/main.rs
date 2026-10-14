@@ -79,6 +79,63 @@ fn crc32(data: &[u8]) -> u32 {
     !crc
 }
 
+fn write_webp(path: &str, pixels: &[u8], w: u32, h: u32, rgba: bool, quality: Option<f32>, method: i32) {
+    let encoder =
+        if rgba { webp::Encoder::from_rgba(pixels, w, h) } else { webp::Encoder::from_rgb(pixels, w, h) };
+    let mut config = webp::WebPConfig::new().unwrap();
+    config.method = method;
+    match quality {
+        Some(q) => {
+            config.quality = q;
+            config.alpha_compression = 1;
+        }
+        None => {
+            config.lossless = 1;
+        }
+    }
+    fs::write(path, encoder.encode_advanced(&config).unwrap().to_vec()).unwrap();
+}
+
+/// A WebP file from `(kind, payload)` pairs. Kept separate from `squish-core` on purpose:
+/// the fixtures must not depend on the code they test.
+fn riff(chunks: &[(&[u8; 4], &[u8])]) -> Vec<u8> {
+    let mut v = b"RIFF\x00\x00\x00\x00WEBP".to_vec();
+    for (kind, payload) in chunks {
+        v.extend_from_slice(*kind);
+        v.extend_from_slice(&(payload.len() as u32).to_le_bytes());
+        v.extend_from_slice(payload);
+        if payload.len() % 2 == 1 {
+            v.push(0);
+        }
+    }
+    let size = (v.len() - 8) as u32;
+    v[4..8].copy_from_slice(&size.to_le_bytes());
+    v
+}
+
+/// The top-level chunks of a WebP file, in order. Enough to lift the bitstream out of one
+/// file and rewrap it in another container.
+fn riff_chunks(bytes: &[u8]) -> Vec<([u8; 4], Vec<u8>)> {
+    let mut out = Vec::new();
+    let mut at = 12;
+    while let Some(head) = bytes.get(at..at + 8) {
+        let kind = [head[0], head[1], head[2], head[3]];
+        let size = u32::from_le_bytes([head[4], head[5], head[6], head[7]]) as usize;
+        let Some(end) = at.checked_add(8).and_then(|n| n.checked_add(size)) else { break };
+        let Some(payload) = bytes.get(at + 8..end) else { break };
+        out.push((kind, payload.to_vec()));
+        at = end + (size & 1);
+    }
+    out
+}
+
+fn vp8x(flags: u8, w: u32, h: u32) -> Vec<u8> {
+    let mut v = vec![flags, 0, 0, 0];
+    v.extend_from_slice(&w.saturating_sub(1).to_le_bytes()[..3]);
+    v.extend_from_slice(&h.saturating_sub(1).to_le_bytes()[..3]);
+    v
+}
+
 fn exif_orientation(o: u8) -> Vec<u8> {
     // Orientation plus a GPS pointer, so the strip test has something to remove.
     let mut v = b"Exif\0\0MM\x00\x2A\x00\x00\x00\x08\x00\x02".to_vec();
@@ -153,4 +210,30 @@ fn main() {
     actl.extend_from_slice(&crc32(&body).to_be_bytes());
     apng.splice(33..33, actl);
     fs::write(p("animated.png"), apng).unwrap();
+
+    // WebP: lossy and lossless photos, an alpha logo, a metadata carrier and an animated file.
+    write_webp(&p("photo.webp"), &rgb, w as u32, h as u32, false, Some(95.0), 4);
+    // A deliberately wasteful lossless encode at method 0, so there is room to shrink.
+    write_webp(&p("photo-lossless.webp"), &rgb, w as u32, h as u32, false, None, 0);
+    write_webp(&p("logo-alpha.webp"), &rgba, lw as u32, lh as u32, true, Some(95.0), 4);
+
+    // The bitstream of photo.webp, rewrapped by hand in VP8X containers.
+    let photo = fs::read(p("photo.webp")).unwrap();
+    let bitstream = riff_chunks(&photo).into_iter().find(|(k, _)| k == b"VP8 ").expect("photo.webp has a VP8 chunk").1;
+    let exif = exif_orientation(6);
+    let bare_tiff = exif.strip_prefix(b"Exif\0\0").unwrap();
+    fs::write(
+        p("photo-meta.webp"),
+        riff(&[
+            (b"VP8X", &vp8x(0x20 | 0x08 | 0x04, w as u32, h as u32)),
+            (b"ICCP", &fake_icc),
+            (b"VP8 ", &bitstream),
+            (b"ZZZZ", b"a chunk squish does not know"),
+            (b"EXIF", bare_tiff),
+            (b"XMP ", b"<x:xmpmeta>made by the squish fixture generator</x:xmpmeta>"),
+        ]),
+    )
+    .unwrap();
+    fs::write(p("animated.webp"), riff(&[(b"VP8X", &vp8x(0x02, w as u32, h as u32)), (b"VP8 ", &bitstream)]))
+        .unwrap();
 }
