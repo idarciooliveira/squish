@@ -26,3 +26,17 @@ jobs:
       - run: cargo test -p squish --no-default-features
       # bench/images/ is gitignored, so golden.rs skips here and the fixtures carry the run (ADR-0020).
       - run: cargo test --workspace
+
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      # Installs the version, components and targets pinned in rust-toolchain.toml.
+      - run: rustup toolchain install
+      - run: sudo apt-get install -y musl-tools nasm
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo build --release -p squish --target x86_64-unknown-linux-musl
+      - run: |
+          size=$(stat -c %s target/x86_64-unknown-linux-musl/release/squish)
+          echo "binary: $size bytes"
+          test "$size" -lt 15000000
