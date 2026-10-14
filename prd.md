@@ -3,8 +3,8 @@
 | | |
 |---|---|
 | Owner | Idarcio Oliveira (@idarciooliveira) |
-| Status | Phase 1 done. Phase 2 in progress: the WebP codec is still open. Phase 3 (web version) built. |
-| Last updated | 2026-10-13 |
+| Status | Phase 1 done. Phase 2 in progress: the WebP codec is done and NFR-1 confirmed; effort presets, the static build and the AVIF trigger check remain. Phase 3 (web version) built. |
+| Last updated | 2026-10-14 |
 | Decisions | [`docs/adr/`](docs/adr/README.md) (ADR-0001 to ADR-0028) |
 
 ## 1. Summary
@@ -297,14 +297,16 @@ The metric work is done: fast-ssim2 at about 1 MP, with starting targets from th
 ### Phase 2: WebP, zip, polish, and AVIF only if needed (about 1 week)
 
 - [x] WebP corpus, curves and quality policy ([ADR-0028](docs/adr/0028-webp-quality-and-metadata.md)), harness accepts `--only webp`
-- [ ] `webp.rs`: detect lossy or lossless, encode with libwebp
-- [ ] Skip animated files cleanly
+- [x] `webp.rs`: detect lossy or lossless, encode with libwebp
+- [x] Skip animated files cleanly
 - [x] `--zip`, `--json`, `--dry-run`
 - [ ] Effort presets
 - [ ] Release profile, musl static build, binary size check
 - [ ] Check the AVIF trigger in ADR-0012. If it fires, add `avif.rs` behind the `avif` feature, with a speed preset and a timeout.
 
 **Exit criteria:** NFR-1 met for WebP, and the binary is under 15 MB.
+
+Status on 2026-10-14: NFR-1 met for WebP at the default effort on the real corpus (12 lossy files with TinyPNG outputs, 1 lossless): +1.3% bytes vs TinyPNG, median dssim ratio 0.95, worst file 1.11x, so all three clauses pass. NFR-2 holds with no search. The binary size check is still open.
 
 ### Phase 3: web version (about 1 week)
 

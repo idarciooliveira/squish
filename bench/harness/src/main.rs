@@ -5,8 +5,7 @@
 //! the referee, and with the shipped metric. Files run one at a time so CPU time is clean.
 //!
 //! WebP files are reported as `webp`, or `webp-lossless` for lossless sources, which
-//! `--only webp` takes together. squish-core has no WebP codec yet, so until it does
-//! every WebP file is listed under "skipped".
+//! `--only webp` takes together.
 //!
 //! usage: harness [--images DIR] [--tinypng DIR] [--out FILE] [--only png|jpeg|webp]
 //!                [--effort fast|default|max] [--jpeg-target N] [--png-target N]
@@ -322,6 +321,11 @@ fn summarize(rows: &[Row], skipped: &[String], args: &Args) {
         let worst = counted.iter().max_by(|a, b| a.ratio().total_cmp(&b.ratio()));
         let over: Vec<&&&Row> = counted.iter().filter(|r| r.ratio() > 2.0).collect();
         let mut cpu_ratios: Vec<f64> = set.iter().filter(|r| r.probes > 0).map(|r| r.cpu_ratio()).collect();
+        if cpu_ratios.is_empty() {
+            // No searched files: the pipeline is one plain encode, so the ratio is 1x
+            // (WebP has no search yet, ADR-0028). Without this the median is NaN.
+            cpu_ratios.push(1.0);
+        }
         let cpu_med = median(&mut cpu_ratios);
         let slowest = set.iter().max_by(|a, b| a.cpu_ms.total_cmp(&b.cpu_ms)).unwrap();
         let over_budget = set.iter().filter(|r| r.cpu_ms > 10_000.0).count();
