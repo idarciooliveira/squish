@@ -75,6 +75,12 @@ pub(crate) fn compress(bytes: &[u8], options: &Options) -> Result<Encoded, Error
     let meta = metadata::webp_meta(bytes, options.metadata);
     if !lossless && options.quality == Quality::Lossless {
         // A lossy file stays lossy: only the metadata policy runs, on the original bitstream.
+        // A truncated file can still have readable dimensions, so require the complete
+        // bitstream chunk: without it the assemble step emits a header-only file that the
+        // size guard mistakes for a win.
+        if !metadata::webp_chunks(bytes).iter().any(|c| &c.kind == b"VP8 ") {
+            return Err(Error::Decode("the WebP bitstream is truncated".into()));
+        }
         let (width, height) = format::dimensions(bytes, Format::WebP)
             .ok_or_else(|| Error::Decode("could not read the WebP canvas size".into()))?;
         return Ok(Encoded { bytes: metadata::webp_assemble(bytes, &meta, width, height), report: Report::default() });
@@ -195,6 +201,20 @@ mod tests {
         };
         assert_eq!(payload(&out.bytes), payload(&input));
         assert_eq!(out.report, Report::default());
+    }
+
+    #[test]
+    fn lossless_quality_on_a_truncated_input_is_a_decode_error() {
+        let input = lossy_input(&noisy_rgb(64, 48), 64, 48);
+        let options = Options { quality: Quality::Lossless, ..Options::default() };
+        // Cut inside the VP8 payload: the dimensions still parse, the bitstream doesn't survive.
+        assert!(matches!(compress(&input[..input.len() - 10], &options), Err(Error::Decode(_))));
+        // A VP8X shell with a canvas but no image data fails the same way.
+        let mut shell = b"RIFF\x12\x00\x00\x00WEBP".to_vec();
+        shell.extend_from_slice(b"VP8X");
+        shell.extend_from_slice(&10u32.to_le_bytes());
+        shell.extend_from_slice(&[0, 0, 0, 0, 63, 0, 0, 63, 0, 0]);
+        assert!(matches!(compress(&shell, &options), Err(Error::Decode(_))));
     }
 
     #[test]
