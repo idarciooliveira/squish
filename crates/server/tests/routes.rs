@@ -148,6 +148,19 @@ async fn animated_png_is_415() {
 }
 
 #[tokio::test]
+async fn webp_compresses_to_webp_and_animated_webp_is_415() {
+    let input = fixture("photo.webp");
+    let (response, body) = post(router(config()), "/api/compress?effort=fast", input.clone()).await;
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(header_str(&response, "content-type"), "image/webp");
+    assert!(body.len() < input.len());
+    assert_eq!(&body[..4], b"RIFF");
+
+    let (response, body) = post(router(config()), "/api/compress", fixture("animated.webp")).await;
+    assert_error(&response, &body, StatusCode::UNSUPPORTED_MEDIA_TYPE, "animated_image");
+}
+
+#[tokio::test]
 async fn broken_image_is_422() {
     let mut broken = fixture("photo-rgb.png");
     broken.truncate(200);

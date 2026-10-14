@@ -19,5 +19,8 @@ webp.workspace = true
 image-webp.workspace = true
 quantizr = { workspace = true, optional = true }
 
+[dev-dependencies]
+image-webp.workspace = true
+
 [lints]
 workspace = true

@@ -1,4 +1,4 @@
-//! Runs every PNG and JPEG in `bench/images/` through `compress`.
+//! Runs every PNG, JPEG and WebP in `bench/images/` through `compress`.
 //!
 //! The corpus is gitignored, so on a fresh clone this prints a message and passes
 //! (ADR-0020). Locally it asserts that each output decodes, keeps its dimensions
@@ -48,7 +48,7 @@ fn bench_corpus_compresses_without_growing() {
                                 failures.lock().unwrap().push(format!("{name}: size {before:?} became {after:?}"));
                             }
                         }
-                        // A file over the pixel limit, or one that isn't PNG or JPEG, is a clean skip.
+                        // A file over the pixel limit, or one that isn't PNG, JPEG or WebP, is a clean skip.
                         Err(Error::TooManyPixels { .. } | Error::Unsupported(_) | Error::Animated(_)) => {}
                         Err(e) => failures.lock().unwrap().push(format!("{name}: {e}")),
                     }
