@@ -8,7 +8,7 @@ A fast, local image compressor in the spirit of [TinyPNG](https://tinypng.com). 
 
 It's written in Rust and ships as a single binary with no runtime dependencies.
 
-> **Status:** the CLI and the web UI compress PNG and JPEG. WebP is next. Read the [PRD](prd.md) for the full plan and [`docs/adr/`](docs/adr/README.md) for the decisions behind it.
+> **Status:** the CLI and the web UI compress PNG, JPEG and WebP. Read the [PRD](prd.md) for the full plan and [`docs/adr/`](docs/adr/README.md) for the decisions behind it.
 
 ## Usage
 

@@ -392,6 +392,176 @@ pub(crate) fn png_insert_after_ihdr(png: Vec<u8>, extra: &[&[u8]]) -> Vec<u8> {
     out
 }
 
+// WebP
+
+pub(crate) struct WebpChunk<'a> {
+    pub kind: [u8; 4],
+    /// The payload, without the 8-byte header or the pad byte.
+    pub payload: &'a [u8],
+}
+
+/// Walks the top-level chunks after `WEBP`, stopping at the first damaged one.
+pub(crate) fn webp_chunks(bytes: &[u8]) -> Vec<WebpChunk<'_>> {
+    let mut chunks = Vec::new();
+    if bytes.get(..4) != Some(b"RIFF") || bytes.get(8..12) != Some(b"WEBP") {
+        return chunks;
+    }
+    let mut at = 12;
+    while let Some(head) = bytes.get(at..at + 8) {
+        let kind = [head[0], head[1], head[2], head[3]];
+        let size = u32::from_le_bytes([head[4], head[5], head[6], head[7]]) as usize;
+        let Some(end) = at.checked_add(8).and_then(|n| n.checked_add(size)) else { break };
+        let Some(payload) = bytes.get(at + 8..end) else { break };
+        chunks.push(WebpChunk { kind, payload });
+        // Odd payloads end with a zero pad byte that the size doesn't count.
+        at = end + (size & 1);
+    }
+    chunks
+}
+
+/// True when the image data is a `VP8L` bitstream. A lossy file with alpha has `ALPH` + `VP8 `.
+pub(crate) fn webp_is_lossless(bytes: &[u8]) -> bool {
+    webp_chunks(bytes).iter().any(|c| &c.kind == b"VP8L")
+}
+
+/// Orientation 1 to 8 from a WebP `EXIF` payload, with or without the `Exif\0\0` prefix.
+pub(crate) fn webp_orientation(exif: &[u8]) -> Option<u8> {
+    tiff_orientation(exif.strip_prefix(EXIF_SIGNATURE).unwrap_or(exif))
+}
+
+/// The chunks around the image data that go into the output.
+#[derive(Debug, Default, PartialEq)]
+pub(crate) struct WebpMeta {
+    pub icc: Option<Vec<u8>>,
+    pub exif: Option<Vec<u8>>,
+    pub xmp: Option<Vec<u8>>,
+    /// Chunks squish doesn't know, in their original order. Only `keep-all` fills this.
+    pub unknown: Vec<([u8; 4], Vec<u8>)>,
+}
+
+/// Image-data chunks that never carry metadata: the bitstreams, their alpha sidecar,
+/// the container header they hang under, and animation frames, which squish rejects.
+const WEBP_IMAGE_CHUNKS: [[u8; 4]; 6] = [*b"VP8X", *b"VP8 ", *b"VP8L", *b"ALPH", *b"ANIM", *b"ANMF"];
+
+pub(crate) fn webp_meta(bytes: &[u8], policy: MetaPolicy) -> WebpMeta {
+    let chunks = webp_chunks(bytes);
+    let mut meta = WebpMeta::default();
+    if policy == MetaPolicy::StripAll {
+        return meta;
+    }
+    meta.icc = chunks.iter().find(|c| &c.kind == b"ICCP").map(|c| c.payload.to_vec());
+    match policy {
+        MetaPolicy::StripKeepIcc => {
+            // Orientation 1 means "as stored", the same as no tag.
+            if let Some(o) =
+                chunks.iter().find(|c| &c.kind == b"EXIF").and_then(|c| webp_orientation(c.payload)).filter(|&o| o != 1)
+            {
+                // `minimal_exif` returns a JPEG APP1 payload starting with `Exif\0\0`;
+                // the WebP chunk holds the bare TIFF data.
+                meta.exif = Some(minimal_exif(o)[EXIF_SIGNATURE.len()..].to_vec());
+            }
+        }
+        MetaPolicy::KeepAll => {
+            meta.exif = chunks.iter().find(|c| &c.kind == b"EXIF").map(|c| c.payload.to_vec());
+            meta.xmp = chunks.iter().find(|c| &c.kind == b"XMP ").map(|c| c.payload.to_vec());
+            for c in &chunks {
+                if !WEBP_IMAGE_CHUNKS.contains(&c.kind)
+                    && &c.kind != b"ICCP"
+                    && &c.kind != b"EXIF"
+                    && &c.kind != b"XMP "
+                {
+                    meta.unknown.push((c.kind, c.payload.to_vec()));
+                }
+            }
+        }
+        MetaPolicy::StripAll => unreachable!(),
+    }
+    meta
+}
+
+fn webp_push(out: &mut Vec<u8>, kind: &[u8; 4], payload: &[u8]) {
+    out.extend_from_slice(kind);
+    out.extend_from_slice(&(payload.len() as u32).to_le_bytes());
+    out.extend_from_slice(payload);
+    if payload.len() % 2 == 1 {
+        out.push(0);
+    }
+}
+
+/// Builds a WebP file from the image chunks of `encoded` (a complete file from libwebp,
+/// or the original) and `meta`. `width` and `height` are the canvas size.
+pub(crate) fn webp_assemble(encoded: &[u8], meta: &WebpMeta, width: u32, height: u32) -> Vec<u8> {
+    let chunks = webp_chunks(encoded);
+    let image: Vec<&WebpChunk<'_>> =
+        chunks.iter().filter(|c| &c.kind == b"ALPH" || &c.kind == b"VP8 " || &c.kind == b"VP8L").collect();
+    let has_alpha = image.iter().any(|c| &c.kind == b"ALPH");
+    let meta_empty = meta.icc.is_none() && meta.exif.is_none() && meta.xmp.is_none() && meta.unknown.is_empty();
+
+    let mut out = Vec::new();
+    out.extend_from_slice(b"RIFF");
+    out.extend_from_slice(&0u32.to_le_bytes());
+    out.extend_from_slice(b"WEBP");
+    if meta_empty && !has_alpha {
+        for c in &image {
+            webp_push(&mut out, &c.kind, c.payload);
+        }
+    } else {
+        // The alpha flag survives even when the `ALPH` chunk comes from the encoder:
+        // a `VP8X` header may already carry it, and a `VP8L` bitstream has it in its
+        // header (bit 28 of the u32 after the `0x2F` signature byte) without an `ALPH` chunk.
+        let alpha = has_alpha
+            || chunks
+                .iter()
+                .find(|c| &c.kind == b"VP8X")
+                .is_some_and(|c| c.payload.first().is_some_and(|f| f & 0x10 != 0))
+            || image.iter().any(|c| {
+                &c.kind == b"VP8L"
+                    && c.payload.first() == Some(&0x2F)
+                    && matches!(c.payload.get(1..5), Some(h) if u32::from_le_bytes([h[0], h[1], h[2], h[3]]) >> 28 & 1 == 1)
+            });
+        let mut flags = 0u8;
+        if meta.icc.is_some() {
+            flags |= 0x20;
+        }
+        if alpha {
+            flags |= 0x10;
+        }
+        if meta.exif.is_some() {
+            flags |= 0x08;
+        }
+        if meta.xmp.is_some() {
+            flags |= 0x04;
+        }
+        let mut vp8x = [0u8; 10];
+        vp8x[0] = flags;
+        vp8x[4..7].copy_from_slice(&width.saturating_sub(1).to_le_bytes()[..3]);
+        vp8x[7..10].copy_from_slice(&height.saturating_sub(1).to_le_bytes()[..3]);
+        webp_push(&mut out, b"VP8X", &vp8x);
+        if let Some(icc) = &meta.icc {
+            webp_push(&mut out, b"ICCP", icc);
+        }
+        // `ALPH` before `VP8 `: lossy with alpha decodes only in that order.
+        for c in image.iter().filter(|c| &c.kind == b"ALPH") {
+            webp_push(&mut out, &c.kind, c.payload);
+        }
+        for c in image.iter().filter(|c| &c.kind != b"ALPH") {
+            webp_push(&mut out, &c.kind, c.payload);
+        }
+        for (kind, payload) in &meta.unknown {
+            webp_push(&mut out, kind, payload);
+        }
+        if let Some(exif) = &meta.exif {
+            webp_push(&mut out, b"EXIF", exif);
+        }
+        if let Some(xmp) = &meta.xmp {
+            webp_push(&mut out, b"XMP ", xmp);
+        }
+    }
+    let size = (out.len() - 8) as u32;
+    out[4..8].copy_from_slice(&size.to_le_bytes());
+    out
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -628,5 +798,161 @@ mod tests {
         let merged = png_insert_after_ihdr(base, &[&extra]);
         let kinds: Vec<[u8; 4]> = png_chunks(&merged).iter().map(|c| c.kind).collect();
         assert_eq!(kinds, [*b"IHDR", *b"iCCP", *b"IDAT", *b"IEND"]);
+    }
+
+    fn webp(chunks: &[(&[u8; 4], &[u8])]) -> Vec<u8> {
+        let mut v = b"RIFF\x00\x00\x00\x00WEBP".to_vec();
+        for (kind, payload) in chunks {
+            v.extend_from_slice(*kind);
+            v.extend_from_slice(&(payload.len() as u32).to_le_bytes());
+            v.extend_from_slice(payload);
+            if payload.len() % 2 == 1 {
+                v.push(0);
+            }
+        }
+        let size = (v.len() - 8) as u32;
+        v[4..8].copy_from_slice(&size.to_le_bytes());
+        v
+    }
+
+    #[test]
+    fn webp_chunks_reads_odd_chunks_and_stops_on_damage() {
+        let file = webp(&[(b"VP8 ", &[1, 2, 3]), (b"ICCP", &[9; 4])]);
+        let chunks = webp_chunks(&file);
+        assert_eq!(chunks.len(), 2);
+        assert_eq!(chunks[0].kind, *b"VP8 ");
+        assert_eq!(chunks[0].payload, [1, 2, 3]);
+        // The odd payload's pad byte is skipped, so the next chunk still parses.
+        assert_eq!(chunks[1].payload, [9; 4]);
+        let cut = &file[..file.len() - 3];
+        assert_eq!(webp_chunks(cut).len(), 1);
+        assert!(webp_chunks(b"not a webp file").is_empty());
+    }
+
+    #[test]
+    fn webp_lossless_is_vp8l_only() {
+        assert!(webp_is_lossless(&webp(&[(b"VP8L", &[0x2F, 1, 2, 3])])));
+        assert!(!webp_is_lossless(&webp(&[(b"VP8 ", &[7; 8])])));
+        assert!(!webp_is_lossless(&webp(&[(b"ALPH", &[1]), (b"VP8 ", &[7; 8])])));
+    }
+
+    #[test]
+    fn webp_orientation_reads_both_byte_orders_and_the_prefix() {
+        let bare = &minimal_exif(6)[EXIF_SIGNATURE.len()..];
+        assert_eq!(webp_orientation(bare), Some(6));
+        let mut prefixed = EXIF_SIGNATURE.to_vec();
+        prefixed.extend_from_slice(bare);
+        assert_eq!(webp_orientation(&prefixed), Some(6));
+        // Little-endian block with orientation 3.
+        let mut tiff = b"II\x2A\x00\x08\x00\x00\x00".to_vec();
+        tiff.extend_from_slice(&1u16.to_le_bytes());
+        tiff.extend_from_slice(&[0x12, 0x01, 3, 0, 1, 0, 0, 0, 3, 0, 0, 0]);
+        assert_eq!(webp_orientation(&tiff), Some(3));
+        assert_eq!(webp_orientation(b"garbage"), None);
+    }
+
+    #[test]
+    fn webp_meta_follows_the_policy() {
+        let tiff = minimal_exif(6)[EXIF_SIGNATURE.len()..].to_vec();
+        let file = webp(&[
+            (b"VP8X", &[0x38; 10]),
+            (b"ICCP", b"profile"),
+            (b"VP8 ", &[7; 8]),
+            (b"ZZZZ", b"one"),
+            (b"XMP ", b"<x/>"),
+            (b"ABCD", b"two"),
+            (b"EXIF", &tiff),
+        ]);
+        let keep = webp_meta(&file, MetaPolicy::StripKeepIcc);
+        assert_eq!(keep.icc.as_deref(), Some(&b"profile"[..]));
+        assert_eq!(keep.xmp, None);
+        assert!(keep.unknown.is_empty());
+        let kept_exif = keep.exif.expect("orientation 6 survives");
+        assert_eq!(kept_exif, minimal_exif(6)[EXIF_SIGNATURE.len()..]);
+        assert_eq!(webp_orientation(&kept_exif), Some(6));
+
+        assert_eq!(webp_meta(&file, MetaPolicy::StripAll), WebpMeta::default());
+
+        let all = webp_meta(&file, MetaPolicy::KeepAll);
+        assert_eq!(all.icc.as_deref(), Some(&b"profile"[..]));
+        assert_eq!(all.exif.as_deref(), Some(&tiff[..]));
+        assert_eq!(all.xmp.as_deref(), Some(&b"<x/>"[..]));
+        assert_eq!(all.unknown, [(*b"ZZZZ", b"one".to_vec()), (*b"ABCD", b"two".to_vec())]);
+
+        // Orientation 1 is "as stored", the same as no tag.
+        let upright_tiff = minimal_exif(1)[EXIF_SIGNATURE.len()..].to_vec();
+        let upright = webp(&[(b"VP8 ", &[7; 8]), (b"EXIF", &upright_tiff)]);
+        assert!(webp_meta(&upright, MetaPolicy::StripKeepIcc).exif.is_none());
+    }
+
+    #[test]
+    fn webp_assemble_writes_simple_and_extended_files() {
+        // Empty meta and no alpha: a plain bitstream file.
+        let simple = webp_assemble(&webp(&[(b"VP8 ", &[7; 8])]), &WebpMeta::default(), 16, 16);
+        let kinds: Vec<[u8; 4]> = webp_chunks(&simple).iter().map(|c| c.kind).collect();
+        assert_eq!(kinds, [*b"VP8 "]);
+        assert_eq!(u32::from_le_bytes(simple[4..8].try_into().unwrap()) as usize, simple.len() - 8);
+
+        // With metadata: VP8X flags, canvas size, chunk order, RIFF size.
+        let meta = WebpMeta {
+            icc: Some(b"profile".to_vec()),
+            exif: Some(minimal_exif(6)[EXIF_SIGNATURE.len()..].to_vec()),
+            xmp: Some(b"<x/>".to_vec()),
+            unknown: vec![(*b"ZZZZ", b"one".to_vec())],
+        };
+        let out = webp_assemble(&webp(&[(b"VP8 ", &[7; 8])]), &meta, 192, 128);
+        let chunks = webp_chunks(&out);
+        let kinds: Vec<[u8; 4]> = chunks.iter().map(|c| c.kind).collect();
+        assert_eq!(kinds, [*b"VP8X", *b"ICCP", *b"VP8 ", *b"ZZZZ", *b"EXIF", *b"XMP "]);
+        assert_eq!(chunks[0].payload.len(), 10);
+        assert_eq!(chunks[0].payload[0], 0x20 | 0x08 | 0x04, "ICC, EXIF and XMP flags, no alpha");
+        assert_eq!(&chunks[0].payload[4..7], &191u32.to_le_bytes()[..3]);
+        assert_eq!(&chunks[0].payload[7..10], &127u32.to_le_bytes()[..3]);
+        assert_eq!(u32::from_le_bytes(out[4..8].try_into().unwrap()) as usize, out.len() - 8);
+
+        // An ALPH chunk forces the extended container with the alpha flag, ALPH first.
+        let alpha = webp_assemble(&webp(&[(b"VP8 ", &[7; 8]), (b"ALPH", &[1])]), &WebpMeta::default(), 16, 16);
+        let chunks = webp_chunks(&alpha);
+        let kinds: Vec<[u8; 4]> = chunks.iter().map(|c| c.kind).collect();
+        assert_eq!(kinds, [*b"VP8X", *b"ALPH", *b"VP8 "]);
+        assert_eq!(chunks[0].payload[0] & 0x10, 0x10);
+    }
+
+    #[test]
+    fn damaged_webp_never_panics() {
+        let tiff = minimal_exif(6)[EXIF_SIGNATURE.len()..].to_vec();
+        let file = webp(&[
+            (b"VP8X", &[0x3C; 10]),
+            (b"ICCP", b"profile"),
+            (b"ALPH", &[1, 2, 3]),
+            (b"VP8 ", &[7; 8]),
+            (b"ZZZZ", b"one"),
+            (b"EXIF", &tiff),
+            (b"XMP ", b"<x/>"),
+        ]);
+        let meta = webp_meta(&file, MetaPolicy::KeepAll);
+        for n in 0..file.len() {
+            let cut = &file[..n];
+            let _ = webp_chunks(cut);
+            let _ = webp_is_lossless(cut);
+            let _ = webp_orientation(cut);
+            let _ = webp_meta(cut, MetaPolicy::KeepAll);
+            let _ = webp_assemble(cut, &meta, 192, 128);
+        }
+        // Deterministic pseudo-random garbage as well as truncations.
+        let mut state = 0x12345678u32;
+        let mut next = || {
+            state = state.wrapping_mul(1664525).wrapping_add(1013904223);
+            (state >> 8) as u8
+        };
+        for _ in 0..200 {
+            let len = usize::from(next()) % 40;
+            let junk: Vec<u8> = (0..len).map(|_| next()).collect();
+            let _ = webp_chunks(&junk);
+            let _ = webp_is_lossless(&junk);
+            let _ = webp_orientation(&junk);
+            let _ = webp_meta(&junk, MetaPolicy::StripKeepIcc);
+            let _ = webp_assemble(&junk, &meta, 0, 0);
+        }
     }
 }

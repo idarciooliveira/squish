@@ -15,7 +15,12 @@ png.workspace = true
 oxipng.workspace = true
 fast-ssim2.workspace = true
 mozjpeg.workspace = true
+webp.workspace = true
+image-webp.workspace = true
 quantizr = { workspace = true, optional = true }
+
+[dev-dependencies]
+image-webp.workspace = true
 
 [lints]
 workspace = true

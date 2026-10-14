@@ -20,6 +20,8 @@ oxipng = { version = "10.2", default-features = false }
 quantizr = "1.4"
 fast-ssim2 = "0.9"
 mozjpeg = "0.10"
+webp = { version = "0.3", default-features = false }
+image-webp = "0.2"
 
 # server
 axum = { version = "0.8", default-features = false, features = ["http1", "query", "tokio"] }

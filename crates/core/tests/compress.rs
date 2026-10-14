@@ -11,6 +11,10 @@ const FIXTURES: &[&str] = &[
     "photo.jpg",
     "photo-meta.jpg",
     "photo-gray.jpg",
+    "photo.webp",
+    "photo-lossless.webp",
+    "logo-alpha.webp",
+    "photo-meta.webp",
 ];
 
 fn fixture(name: &str) -> Vec<u8> {
@@ -52,6 +56,15 @@ fn decode(bytes: &[u8]) -> Decoded {
             let pixels = s.read_scanlines::<u8>().expect("jpeg data");
             Decoded { width: width as u32, height: height as u32, pixels, channels: if gray { 1 } else { 3 } }
         }
+        Format::WebP => {
+            let mut decoder = image_webp::WebPDecoder::new(std::io::Cursor::new(bytes)).expect("webp header");
+            let (width, height) = decoder.dimensions();
+            let alpha = decoder.has_alpha();
+            let mut buf = vec![0; decoder.output_buffer_size().unwrap()];
+            decoder.read_image(&mut buf).expect("webp data");
+            let pixels = if alpha { buf } else { buf.chunks(3).flat_map(|p| [p[0], p[1], p[2], 255]).collect() };
+            Decoded { width, height, pixels, channels: 4 }
+        }
         other => panic!("fixture in unexpected format {other}"),
     }
 }
@@ -67,7 +80,13 @@ fn options(quality: Quality, effort: Effort) -> Options {
 #[test]
 fn fixtures_are_detected_by_content() {
     for name in FIXTURES {
-        let expected = if name.ends_with(".png") { Format::Png } else { Format::Jpeg };
+        let expected = if name.ends_with(".png") {
+            Format::Png
+        } else if name.ends_with(".webp") {
+            Format::WebP
+        } else {
+            Format::Jpeg
+        };
         assert_eq!(detect(&fixture(name)), Some(expected), "{name}");
     }
 }
@@ -215,6 +234,42 @@ fn jpeg_keep_all_keeps_exif_and_comment() {
     let o = Options { metadata: MetaPolicy::KeepAll, ..Options::default() };
     let b = compress(&fixture("photo-meta.jpg"), &o).unwrap().bytes;
     assert!(contains(&b, b"GPSLatitude") && contains(&b, b"fixture generator") && contains(&b, b"ICC_PROFILE\0"));
+}
+
+#[test]
+fn webp_metadata_follows_the_policy() {
+    let input = fixture("photo-meta.webp");
+    let keep = compress(&input, &Options::default()).unwrap();
+    assert!(!keep.kept_original, "q95 input must shrink at q71: {:?}", keep.report);
+    let b = &keep.bytes;
+    assert!(contains(b, b"ICCP"), "default policy must keep the profile");
+    // Orientation 6 in a minimal EXIF block holding bare TIFF data.
+    assert!(contains(b, &[0x01, 0x12, 0x00, 0x03, 0, 0, 0, 1, 0, 6]), "orientation lost");
+    assert!(!contains(b, b"xmpmeta"), "XMP survived");
+    assert!(!contains(b, b"ZZZZ"), "unknown chunk survived");
+
+    let o = Options { metadata: MetaPolicy::StripAll, ..Options::default() };
+    let b = compress(&input, &o).unwrap().bytes;
+    assert!(!contains(&b, b"ICCP") && !contains(&b, b"EXIF"));
+
+    let o = Options { metadata: MetaPolicy::KeepAll, ..Options::default() };
+    let b = compress(&input, &o).unwrap().bytes;
+    assert!(contains(&b, b"ICCP") && contains(&b, b"ZZZZ") && contains(&b, b"xmpmeta"), "keep-all lost a chunk");
+    assert!(contains(&b, b"GPSLatitude"), "keep-all dropped the EXIF body");
+}
+
+#[test]
+fn webp_lossless_stays_lossless_at_every_setting() {
+    let input = fixture("photo-lossless.webp");
+    let before = decode(&input);
+    for quality in [Quality::Auto, Quality::Fixed(50), Quality::Lossless] {
+        for effort in [Effort::Fast, Effort::Default, Effort::Max] {
+            let out = compress(&input, &options(quality, effort)).unwrap();
+            let label = format!("{quality:?} {effort:?}");
+            assert!(contains(&out.bytes, b"VP8L"), "{label} turned lossless into lossy");
+            assert_eq!(decode(&out.bytes).pixels, before.pixels, "{label} changed pixels");
+        }
+    }
 }
 
 #[test]
@@ -524,6 +579,13 @@ fn unusual_layouts_keep_dimensions_and_never_grow() {
 fn animated_png_is_reported_not_touched() {
     let err = compress(&fixture("animated.png"), &Options::default()).unwrap_err();
     assert_eq!(err, Error::Animated(Format::Png));
+    assert_eq!(err.code(), "animated_image");
+}
+
+#[test]
+fn animated_webp_is_reported_not_touched() {
+    let err = compress(&fixture("animated.webp"), &Options::default()).unwrap_err();
+    assert_eq!(err, Error::Animated(Format::WebP));
     assert_eq!(err.code(), "animated_image");
 }
 

@@ -53,6 +53,16 @@ fn default_mode_writes_min_files_and_a_second_run_skips_them() {
 }
 
 #[test]
+fn webp_files_compress_to_min_webp() {
+    let dir = workspace(&[("img/photo.webp", "photo.webp")]);
+    let out = squish(dir.path(), &["img"]);
+    assert_eq!(out.status.code(), Some(0), "{}", text(&out.stderr));
+    let original = fs::metadata(dir.path().join("img/photo.webp")).unwrap().len();
+    let compressed = fs::metadata(dir.path().join("img/photo.min.webp")).unwrap().len();
+    assert!(compressed < original);
+}
+
+#[test]
 fn out_dir_mirrors_the_tree_and_recursion_is_opt_in() {
     let dir = workspace(&[("img/top.png", "photo-rgb.png"), ("img/icons/logo.png", "logo-alpha.png")]);
     let out = squish(dir.path(), &["img", "-o", "out"]);

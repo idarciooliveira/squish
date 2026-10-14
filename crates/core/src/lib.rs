@@ -21,7 +21,7 @@ pub use quant::{Quantized, Quantizer};
 /// What the compressor measured and chose for one file.
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct Report {
-    /// JPEG quality, or the number of palette colors. `None` for lossless runs.
+    /// JPEG or WebP quality, or the number of palette colors. `None` for lossless runs.
     pub setting: Option<u32>,
     /// fast-ssim2 score of the output at about 1 MP (ADR-0026). `None` when nothing was scored,
     /// 100 when the PNG lossless fallback won (ADR-0027).
@@ -43,7 +43,7 @@ pub struct Output {
 }
 
 /// The formats this build can compress. The rest are detected and reported as unsupported.
-pub const SUPPORTED_FORMATS: &[Format] = &[Format::Png, Format::Jpeg];
+pub const SUPPORTED_FORMATS: &[Format] = &[Format::Png, Format::Jpeg, Format::WebP];
 
 /// The checks `compress` runs before decoding: a supported, still format whose header
 /// dimensions fit `options.max_pixels`. They only read the header, so callers can reject a
@@ -74,7 +74,7 @@ pub fn compress(bytes: &[u8], options: &Options) -> Result<Output, Error> {
 
 /// Scores `candidate` against `original` with the metric the search uses (ADR-0026).
 ///
-/// Both must be PNG or JPEG files of the same size. 100 means identical.
+/// Both must be PNG, JPEG or WebP files of the same size. 100 means identical.
 pub fn score(original: &[u8], candidate: &[u8]) -> Result<f64, Error> {
     let decode = |bytes: &[u8]| {
         let format = detect(bytes).ok_or(Error::Unsupported(None))?;

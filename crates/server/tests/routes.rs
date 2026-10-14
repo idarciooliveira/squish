@@ -60,7 +60,7 @@ async fn info_reports_version_formats_limits_and_defaults() {
     assert_eq!(response.status(), StatusCode::OK);
     let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
     assert_eq!(json["version"], env!("CARGO_PKG_VERSION"));
-    assert_eq!(json["formats"], serde_json::json!(["png", "jpeg"]));
+    assert_eq!(json["formats"], serde_json::json!(["png", "jpeg", "webp"]));
     assert_eq!(
         json["limits"],
         serde_json::json!({ "max_body_bytes": 1000, "max_pixels": 2000, "timeout_ms": 3000, "jobs": 4 })
@@ -144,6 +144,19 @@ async fn unknown_bytes_are_415() {
 #[tokio::test]
 async fn animated_png_is_415() {
     let (response, body) = post(router(config()), "/api/compress", fixture("animated.png")).await;
+    assert_error(&response, &body, StatusCode::UNSUPPORTED_MEDIA_TYPE, "animated_image");
+}
+
+#[tokio::test]
+async fn webp_compresses_to_webp_and_animated_webp_is_415() {
+    let input = fixture("photo.webp");
+    let (response, body) = post(router(config()), "/api/compress?effort=fast", input.clone()).await;
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(header_str(&response, "content-type"), "image/webp");
+    assert!(body.len() < input.len());
+    assert_eq!(&body[..4], b"RIFF");
+
+    let (response, body) = post(router(config()), "/api/compress", fixture("animated.webp")).await;
     assert_error(&response, &body, StatusCode::UNSUPPORTED_MEDIA_TYPE, "animated_image");
 }
 
