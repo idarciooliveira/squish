@@ -218,6 +218,13 @@ mod tests {
     }
 
     #[test]
+    fn effort_pins_quality_and_method_to_table_4_4() {
+        assert_eq!(QUALITY, 71);
+        assert_eq!((method(Effort::Fast), method(Effort::Default), method(Effort::Max)), (2, 4, 6));
+    }
+    }
+
+    #[test]
     fn lossy_alpha_survives_with_the_alpha_flag_set() {
         let mut rgba = Vec::with_capacity(64 * 48 * 4);
         let mut state = 0x12345678u32;
