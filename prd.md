@@ -301,12 +301,12 @@ The metric work is done: fast-ssim2 at about 1 MP, with starting targets from th
 - [x] Skip animated files cleanly
 - [x] `--zip`, `--json`, `--dry-run`
 - [x] Effort presets
-- [ ] Release profile, musl static build, binary size check
+- [x] Release profile, musl static build, binary size check (static binary 4.5 MB, CI fails at 15 MB)
 - [x] Check the AVIF trigger in ADR-0012: checked 2026-10-14, no trigger fired (no AVIF files in the corpus, none requested), so AVIF stays out.
 
 **Exit criteria:** NFR-1 met for WebP, and the binary is under 15 MB.
 
-Status on 2026-10-14: NFR-1 met for WebP at the default effort on the real corpus (12 lossy files with TinyPNG outputs, 1 lossless): +1.3% bytes vs TinyPNG, median dssim ratio 0.95, worst file 1.11x, so all three clauses pass. NFR-2 holds with no search. The binary size check is still open.
+Status on 2026-10-14: NFR-1 met for WebP at the default effort on the real corpus (12 lossy files with TinyPNG outputs, 1 lossless): +1.3% bytes vs TinyPNG, median dssim ratio 0.95, worst file 1.11x, so all three clauses pass. NFR-2 holds with no search. The static musl binary is 4.5 MB, under the 15 MB gate enforced in CI.
 
 ### Phase 3: web version (about 1 week)
 
