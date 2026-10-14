@@ -272,6 +272,14 @@ mod tests {
     use super::*;
 
     #[test]
+    fn effort_pins_the_oxipng_preset_to_table_4_4() {
+        assert_eq!(
+            (oxipng_preset(Effort::Fast), oxipng_preset(Effort::Default), oxipng_preset(Effort::Max)),
+            (1, 2, 5)
+        );
+    }
+
+    #[test]
     fn palette_sizes_span_the_range_in_order() {
         let sizes = palette_sizes();
         assert_eq!((sizes[0], *sizes.last().unwrap()), (2, 256));

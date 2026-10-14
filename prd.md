@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | Owner | Idarcio Oliveira (@idarciooliveira) |
-| Status | Phase 1 done. Phase 2 in progress: the WebP codec is done and NFR-1 confirmed; effort presets, the static build and the AVIF trigger check remain. Phase 3 (web version) built. |
+| Status | Phase 1 done. Phase 2 in progress: the WebP codec is done and NFR-1 confirmed; the static build and the AVIF trigger check remain. Phase 3 (web version) built. |
 | Last updated | 2026-10-14 |
 | Decisions | [`docs/adr/`](docs/adr/README.md) (ADR-0001 to ADR-0028) |
 
@@ -300,7 +300,7 @@ The metric work is done: fast-ssim2 at about 1 MP, with starting targets from th
 - [x] `webp.rs`: detect lossy or lossless, encode with libwebp
 - [x] Skip animated files cleanly
 - [x] `--zip`, `--json`, `--dry-run`
-- [ ] Effort presets
+- [x] Effort presets
 - [ ] Release profile, musl static build, binary size check
 - [x] Check the AVIF trigger in ADR-0012: checked 2026-10-14, no trigger fired (no AVIF files in the corpus, none requested), so AVIF stays out.
 

@@ -258,3 +258,13 @@ pub(crate) fn compress(bytes: &[u8], options: &Options) -> Result<Encoded, Error
         },
     })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn effort_fast_pins_the_fixed_quality_to_table_4_4() {
+        assert_eq!(FAST_QUALITY, 66);
+    }
+}
