@@ -302,7 +302,7 @@ The metric work is done: fast-ssim2 at about 1 MP, with starting targets from th
 - [x] `--zip`, `--json`, `--dry-run`
 - [ ] Effort presets
 - [ ] Release profile, musl static build, binary size check
-- [ ] Check the AVIF trigger in ADR-0012. If it fires, add `avif.rs` behind the `avif` feature, with a speed preset and a timeout.
+- [x] Check the AVIF trigger in ADR-0012: checked 2026-10-14, no trigger fired (no AVIF files in the corpus, none requested), so AVIF stays out.
 
 **Exit criteria:** NFR-1 met for WebP, and the binary is under 15 MB.
 
@@ -356,7 +356,7 @@ These get answered by an ADR when we reach them.
 1. ~~Does quantette handle transparency and match imagequant closely enough?~~ No. quantizr ships instead ([ADR-0022](docs/adr/0022-quantizr-as-the-png-quantizer.md)).
 2. ~~Does jpegli beat mozjpeg enough to be worth its build cost?~~ No ([ADR-0023](docs/adr/0023-mozjpeg-confirmed-over-jpegli.md)).
 3. ~~What are the measured default quality values?~~ A per-file search ([ADR-0024](docs/adr/0024-per-file-quality-search-by-default.md)) with fast-ssim2 targets of 88.7 for JPEG and 90 for PNG as recalibrated in Phase 1 ([ADR-0026](docs/adr/0026-fast-ssim2-as-the-quality-metric.md)).
-4. Does the AVIF trigger fire? (Phase 2)
+4. ~~Does the AVIF trigger fire? (Phase 2)~~ No: checked 2026-10-14, no AVIF files in the corpus and none requested, so `avif.rs` stays unbuilt.
 5. Does the web version go public? (After Phase 3, [ADR-0014](docs/adr/0014-local-first-deployment.md))
 
 ## 13. Decision log
