@@ -12,4 +12,4 @@ COPY --from=builder /app/target/x86_64-unknown-linux-musl/release/squish /squish
 USER 65532:65532
 EXPOSE 8080
 STOPSIGNAL SIGINT
-ENTRYPOINT ["/squish", "serve", "--host", "0.0.0.0", "--port", "8080"]
+ENTRYPOINT ["/squish", "serve", "--host", "0.0.0.0"]

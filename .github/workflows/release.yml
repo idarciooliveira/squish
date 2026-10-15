@@ -52,27 +52,36 @@ jobs:
         uses: ilammy/setup-nasm@72793074d3c8cdda771dba85f6deafe00623038b # v1
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
       - run: cargo build --release -p squish --target ${{ matrix.target }}
-      - name: Stage asset
+      - name: Stage package archive
         shell: bash
         run: |
-          mkdir -p dist
+          mkdir -p dist staging
           exe=""
           if [ "${{ runner.os }}" = "Windows" ]; then exe=".exe"; fi
-          cp "target/${{ matrix.target }}/release/squish${exe}" "dist/squish-${{ matrix.target }}${exe}"
+          cp "target/${{ matrix.target }}/release/squish${exe}" "staging/squish${exe}"
+          cp README.md staging/
+          # NFR-3 keeps applying per artifact; the gate stays on musl.
+          if [[ "${{ matrix.target }}" == *unknown-linux-musl ]]; then
+            size=$(wc -c < "staging/squish")
+            echo "binary: $size bytes"
+            test "$size" -lt 15000000
+          fi
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            (cd staging && 7z a "../dist/squish-${{ matrix.target }}.zip" "squish${exe}" README.md)
+          else
+            tar -czf "dist/squish-${{ matrix.target }}.tar.gz" -C staging "squish" README.md
+          fi
       - name: Smoke check (--help)
         shell: bash
         run: |
-          exe=""
-          if [ "${{ runner.os }}" = "Windows" ]; then exe=".exe"; fi
-          "dist/squish-${{ matrix.target }}${exe}" --help
-      # NFR-3 keeps applying per artifact; the gate stays on musl.
-      - name: Size gate (musl under 15 MB)
-        if: endsWith(matrix.target, 'unknown-linux-musl')
-        shell: bash
-        run: |
-          size=$(stat -c %s "dist/squish-${{ matrix.target }}")
-          echo "binary: $size bytes"
-          test "$size" -lt 15000000
+          rm -rf smoke && mkdir smoke
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            7z x "dist/squish-${{ matrix.target }}.zip" -osmoke
+            ./smoke/squish.exe --help
+          else
+            tar -xzf "dist/squish-${{ matrix.target }}.tar.gz" -C smoke
+            ./smoke/squish --help
+          fi
       - name: Upload asset artifact
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
@@ -91,8 +100,15 @@ jobs:
           pattern: squish-*
           merge-multiple: true
           path: dist
+      - name: Write checksums
+        shell: bash
+        run: |
+          (cd dist && sha256sum squish-*.tar.gz squish-*.zip > SHA256SUMS && cat SHA256SUMS)
       - name: Attach assets to the tag release
         uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
         with:
-          files: dist/squish-*
+          files: |
+            dist/squish-*.tar.gz
+            dist/squish-*.zip
+            dist/SHA256SUMS
           prerelease: ${{ contains(github.ref_name, '-rc') || contains(github.ref_name, '-alpha') || contains(github.ref_name, '-beta') }}

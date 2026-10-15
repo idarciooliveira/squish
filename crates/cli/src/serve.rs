@@ -14,9 +14,9 @@ pub struct ServeCli {
     #[arg(long, default_value = "127.0.0.1", env = "SQUISH_HOST")]
     host: String,
 
-    /// Port to bind. 0 picks a free one
-    #[arg(short, long, default_value_t = 8080, env = "SQUISH_PORT")]
-    port: u16,
+    /// Port to bind. 0 picks a free one [default: 8080, or $PORT if set]
+    #[arg(short, long, env = "SQUISH_PORT")]
+    port: Option<u16>,
 
     /// Open the page in the default browser
     #[arg(long)]
@@ -56,6 +56,20 @@ fn parse_seconds(s: &str) -> Result<Duration, String> {
     }
 }
 
+/// PaaS hosts (Railway, Render, Fly) inject `$PORT`. Precedence:
+/// `--port` > `$SQUISH_PORT` (via clap) > `$PORT` > 8080.
+fn resolve_port(arg: Option<u16>, port_env: Option<&str>) -> Result<u16, String> {
+    if let Some(p) = arg {
+        return Ok(p);
+    }
+    match port_env.map(str::trim) {
+        Some(s) if !s.is_empty() => {
+            s.parse::<u16>().map_err(|_| format!("invalid port {s:?} in PORT, expected 1-65535"))
+        }
+        _ => Ok(8080),
+    }
+}
+
 /// `args` starts at `serve`, which clap reads as the program name.
 pub fn main(args: impl IntoIterator<Item = OsString>) -> ExitCode {
     let cli = ServeCli::parse_from(args);
@@ -64,11 +78,18 @@ pub fn main(args: impl IntoIterator<Item = OsString>) -> ExitCode {
 
 #[cfg(feature = "server")]
 fn start(cli: ServeCli) -> ExitCode {
+    let port = match resolve_port(cli.port, std::env::var("PORT").ok().as_deref()) {
+        Ok(p) => p,
+        Err(e) => {
+            eprintln!("squish: {e}");
+            return ExitCode::from(crate::USAGE);
+        }
+    };
     let defaults = squish_server::Config::default();
-    let target = format!("{}:{}", cli.host, cli.port);
+    let target = format!("{}:{}", cli.host, port);
     let config = squish_server::Config {
         host: cli.host,
-        port: cli.port,
+        port,
         jobs: cli.jobs.map_or(defaults.jobs, NonZeroUsize::get),
         max_body: cli.max_body,
         max_pixels: cli.max_pixels,
@@ -151,5 +172,19 @@ mod tests {
         assert_eq!(cli.max_pixels, 50_000_000);
         assert_eq!(cli.timeout, Duration::from_secs(30));
         assert!(!cli.open && cli.jobs.is_none());
+        // No --port and no $SQUISH_PORT: clap leaves it empty so $PORT can apply.
+        assert_eq!(cli.port, None);
+        assert_eq!(resolve_port(cli.port, None), Ok(8080));
+    }
+
+    #[test]
+    fn port_falls_back_to_port_env() {
+        assert_eq!(resolve_port(None, Some("5000")), Ok(5000));
+        assert_eq!(resolve_port(None, Some(" 8080 ")), Ok(8080));
+        assert_eq!(resolve_port(None, None), Ok(8080));
+        assert_eq!(resolve_port(None, Some("")), Ok(8080));
+        assert_eq!(resolve_port(Some(3000), Some("5000")), Ok(3000));
+        assert!(resolve_port(None, Some("abc")).is_err());
+        assert!(resolve_port(None, Some("99999")).is_err());
     }
 }

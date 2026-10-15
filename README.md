@@ -14,6 +14,26 @@ It's written in Rust and ships as a single binary with no runtime dependencies.
 
 > **Status:** the CLI and the web UI compress PNG, JPEG and WebP. Read the [PRD](prd.md) for the full plan and [`docs/adr/`](docs/adr/README.md) for the decisions behind it.
 
+## Install
+
+Prebuilt archives live on the [releases page](https://github.com/idarciooliveira/squish/releases):
+`squish-<target>.tar.gz` (Linux, macOS) and `squish-<target>.zip` (Windows),
+plus `SHA256SUMS`. Linux and macOS can install with one line:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/idarciooliveira/squish/main/install.sh | sh
+```
+
+That detects your platform, downloads the matching archive for the latest
+release, and installs `squish` into `~/.local/bin`. Options:
+
+```sh
+curl -fsSL .../install.sh | sh -s -- --to ~/.local/bin --version v0.1.0
+SQUISH_VERSION=v0.1.0 SQUISH_BINDIR=~/.local/bin ./install.sh
+```
+
+On Windows download the zip from the releases page and put `squish.exe` on `PATH`.
+
 ## Usage
 
 ```sh
