@@ -196,6 +196,42 @@ fn bad_flags_are_usage_errors() {
     assert_eq!(squish(dir.path(), &[]).status.code(), Some(2));
 }
 
+#[test]
+fn help_subcommand_matches_dash_dash_help() {
+    use std::process::Command;
+    let dir = tempfile::tempdir().unwrap();
+    let run =
+        |args: &[&str]| Command::new(env!("CARGO_BIN_EXE_squish")).args(args).current_dir(dir.path()).output().unwrap();
+    let help = run(&["help"]);
+    let dash_help = run(&["--help"]);
+    assert_eq!(help.status.code(), Some(0));
+    // Same text; only the trailing newline convention may differ.
+    assert_eq!(text(&help.stdout).trim_end(), text(&dash_help.stdout).trim_end());
+    assert!(text(&help.stdout).contains("Usage: squish"));
+
+    let help_serve = run(&["help", "serve"]);
+    let serve_help = run(&["serve", "--help"]);
+    let serve_help_word = run(&["serve", "help"]);
+    assert_eq!(help_serve.status.code(), Some(0));
+    // `help serve` and `serve help` share print_help, so they match exactly.
+    // `serve --help` goes through clap's argv[0] binary name instead, so it
+    // only matches on content, not on the Usage line.
+    assert_eq!(text(&serve_help_word.stdout).trim_end(), text(&help_serve.stdout).trim_end());
+    for out in [&help_serve, &serve_help] {
+        assert_eq!(out.status.code(), Some(0));
+        assert!(text(&out.stdout).contains("Start the web UI"));
+        assert!(text(&out.stdout).contains("--host"));
+    }
+
+    // A file named help is still compressible when written as a path.
+    fs::copy(fixture("palette.png"), dir.path().join("help")).unwrap();
+    assert_eq!(run(&["--effort", "fast", "./help"]).status.code(), Some(0));
+    assert!(dir.path().join("help.min").exists());
+
+    let unknown = run(&["help", "frobnicate"]);
+    assert_eq!(unknown.status.code(), Some(2));
+}
+
 /// Runs `squish -` with `input` on stdin.
 fn squish_stdin(input: &[u8]) -> Output {
     let mut child = Command::new(env!("CARGO_BIN_EXE_squish"))

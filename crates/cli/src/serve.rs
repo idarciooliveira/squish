@@ -5,7 +5,7 @@ use std::num::NonZeroUsize;
 use std::process::ExitCode;
 use std::time::Duration;
 
-use clap::Parser;
+use clap::{CommandFactory, Parser};
 
 #[derive(Parser, Debug)]
 #[command(name = "squish serve", version, about = "Start the web UI and the HTTP API")]
@@ -72,8 +72,28 @@ fn resolve_port(arg: Option<u16>, port_env: Option<&str>) -> Result<u16, String>
 
 /// `args` starts at `serve`, which clap reads as the program name.
 pub fn main(args: impl IntoIterator<Item = OsString>) -> ExitCode {
-    let cli = ServeCli::parse_from(args);
+    let args: Vec<OsString> = args.into_iter().collect();
+    // `squish serve help` mirrors `squish help serve` and `squish serve --help`.
+    if args.get(1).is_some_and(|a| a == "help") {
+        return print_help();
+    }
+    // Canonical binary name, so `serve --help` prints what `help serve` prints.
+    let mut cli_args = args;
+    if let Some(first) = cli_args.get_mut(0) {
+        *first = OsString::from("squish serve");
+    }
+    let cli = ServeCli::parse_from(cli_args);
     start(cli)
+}
+
+/// Print the `serve` help to stdout, for `squish help serve`.
+pub fn print_help() -> ExitCode {
+    let mut cmd = ServeCli::command();
+    if cmd.print_help().is_err() {
+        return ExitCode::FAILURE;
+    }
+    println!();
+    ExitCode::SUCCESS
 }
 
 #[cfg(feature = "server")]

@@ -53,7 +53,7 @@ squish serve --open                  # web UI on http://127.0.0.1:8080
 curl --data-binary @photo.png 'http://127.0.0.1:8080/api/compress?effort=fast' -o small.png
 ```
 
-`squish --help` lists every flag. [ADR-0019](docs/adr/0019-cli-design.md) has the rules for which files a folder walk picks up, where outputs go and what the exit codes mean.
+`squish help` (or `squish --help`) lists every flag, `squish help serve` covers the web UI. [docs/cli.md](docs/cli.md) is the same reference in file form. [ADR-0019](docs/adr/0019-cli-design.md) has the rules for which files a folder walk picks up, where outputs go and what the exit codes mean.
 
 ## Benchmark
 

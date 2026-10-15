@@ -16,7 +16,7 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Instant;
 
-use clap::Parser;
+use clap::{CommandFactory, Parser};
 use squish_core::{Effort, MetaPolicy, Options, Quality};
 
 use crate::archive::Archive;
@@ -33,7 +33,7 @@ const OUTPUT: &str = "Output (default writes name.min.ext next to the input)";
     name = "squish",
     version,
     about = "Compress PNG, JPEG and WebP images, keeping their format",
-    after_help = "Run `squish serve --help` for the web UI."
+    after_help = "Run `squish help serve` or `squish serve --help` for the web UI."
 )]
 struct Cli {
     /// Files, folders, globs, or - to read one image from stdin and write it to stdout
@@ -118,14 +118,41 @@ impl Cli {
 
 fn main() -> ExitCode {
     // `serve` is reserved (ADR-0019). To compress a file named serve, write ./serve.
-    if std::env::args_os().nth(1).is_some_and(|a| a == "serve") {
+    // `help` is a subcommand alias for `--help`, so `squish help` never tries to
+    // compress a file named help. To compress one, write ./help.
+    let first = std::env::args_os().nth(1);
+    if first.as_deref().is_some_and(|a| a == "serve") {
         return serve::main(std::env::args_os().skip(1));
+    }
+    if first.as_deref().is_some_and(|a| a == "help") {
+        return help_main(std::env::args_os().skip(2));
     }
     let cli = Cli::parse();
     if cli.paths.iter().any(|p| p == Path::new("-")) {
         return stdin_mode(&cli);
     }
     files_mode(&cli)
+}
+
+/// `squish help` prints the top-level help, `squish help serve` the web UI help.
+/// LLMs and scripts can rely on this: the output matches `--help` exactly.
+fn help_main(args: impl IntoIterator<Item = std::ffi::OsString>) -> ExitCode {
+    let rest: Vec<std::ffi::OsString> = args.into_iter().collect();
+    if rest.is_empty() {
+        let mut cmd = Cli::command();
+        if cmd.print_help().is_err() {
+            return ExitCode::FAILURE;
+        }
+        println!();
+        return ExitCode::SUCCESS;
+    }
+    if rest.len() == 1 && rest[0] == "serve" {
+        return serve::print_help();
+    }
+    usage_error(format!(
+        "unknown help topic {:?}; try `squish help` or `squish help serve`",
+        rest.iter().map(|a| a.to_string_lossy().into_owned()).collect::<Vec<_>>().join(" ")
+    ))
 }
 
 fn usage_error(message: impl std::fmt::Display) -> ExitCode {
