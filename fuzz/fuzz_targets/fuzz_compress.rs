@@ -14,13 +14,15 @@ const EFFORTS: [Effort; 3] = [Effort::Fast, Effort::Default, Effort::Max];
 const POLICIES: [MetaPolicy; 3] = [MetaPolicy::StripKeepIcc, MetaPolicy::StripAll, MetaPolicy::KeepAll];
 
 fuzz_target!(|input: &[u8]| {
-    // Three bytes select the options, the rest is the image. Skip inputs too
-    // small to hold a header, and cap the size so one input can't eat the
-    // whole fuzz budget (NFR-6 cares about malformed input, not throughput).
+    // The first three bytes select the options and the whole input is the
+    // image, so committed seeds keep their headers and reach the decoders.
+    // Cap the size so one input can't eat the whole fuzz budget (NFR-6 cares
+    // about malformed input, not throughput).
     if input.len() < 4 || input.len() > 1_000_000 {
         return;
     }
-    let (selector, data) = input.split_at(3);
+    let selector = &input[..3];
+    let data = input;
     let options = Options {
         quality: QUALITIES[usize::from(selector[0]) % QUALITIES.len()],
         effort: EFFORTS[usize::from(selector[1]) % EFFORTS.len()],
