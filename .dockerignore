@@ -1,0 +1,4 @@
+bench/images/
+bench/tinypng/
+target/
+fuzz/corpus
