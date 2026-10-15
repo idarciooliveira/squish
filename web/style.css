@@ -232,7 +232,10 @@ footer {
   padding-bottom: 24px;
   color: var(--muted);
   font-size: 0.8rem;
+  text-align: center;
 }
+
+footer a { color: var(--accent); }
 
 @media (max-width: 640px) {
   .row {
