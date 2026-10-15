@@ -31,6 +31,17 @@ curl --data-binary @photo.png 'http://127.0.0.1:8080/api/compress?effort=fast' -
 
 `squish --help` lists every flag. [ADR-0019](docs/adr/0019-cli-design.md) has the rules for which files a folder walk picks up, where outputs go and what the exit codes mean.
 
+## Docker
+
+The image holds only the static musl binary (`FROM scratch`, nothing else inside).
+It is `linux/amd64` (the binary is `x86_64-unknown-linux-musl`).
+`squish serve` binds to localhost by default, so the image passes `--host 0.0.0.0` to publish the port ([ADR-0014](docs/adr/0014-local-first-deployment.md)):
+
+```sh
+docker build -t squish .
+docker run -p 8080:8080 squish   # web UI on http://127.0.0.1:8080
+```
+
 ## Contributing
 
 Turn on the repository's git hooks after cloning:
