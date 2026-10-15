@@ -140,11 +140,19 @@ select, input[type="number"] {
 
 #actions {
   display: flex;
+  align-items: center;
+  justify-content: space-between;
   gap: 10px;
   margin-bottom: 12px;
 }
 
 #actions[hidden] { display: none; }
+
+#actions .buttons {
+  display: flex;
+  gap: 10px;
+  margin-left: auto;
+}
 
 #actions button {
   padding: 8px 14px;

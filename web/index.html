@@ -11,7 +11,6 @@
 <body>
   <header>
     <h1><img src="logo.png" alt="" width="32" height="32"> squish</h1>
-    <p id="total" aria-live="polite"></p>
   </header>
 
   <main>
@@ -51,8 +50,11 @@
     </details>
 
     <div id="actions" hidden>
-      <button type="button" id="download-all" disabled>Download all</button>
-      <button type="button" id="clear">Clear</button>
+      <p id="total" aria-live="polite"></p>
+      <div class="buttons">
+        <button type="button" id="download-all" disabled>Download all</button>
+        <button type="button" id="clear">Clear</button>
+      </div>
     </div>
 
     <ul id="rows"></ul>
