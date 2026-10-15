@@ -70,6 +70,7 @@ h1 {
   background: var(--panel);
   text-align: center;
   outline: none;
+  cursor: pointer;
   transition: border-color 0.15s, background 0.15s;
 }
 
