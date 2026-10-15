@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | Owner | Idarcio Oliveira (@idarciooliveira) |
-| Status | Phase 1 done. Phase 2 done (WebP NFR-1 confirmed, static musl build, AVIF trigger did not fire). Phase 3 (web version) built. Phase 4 ship done for T1 release binaries, T2 Dockerfile and T3 fuzz; T4 public-web decision pending (owner). |
+| Status | Finished so far. Phase 1 done. Phase 2 done (WebP NFR-1 confirmed, static musl build, AVIF trigger did not fire). Phase 3 (web version) built. Phase 4 ship done: T1 release binaries, T2 Dockerfile, T3 fuzz, T4 stays local-first (decided 2026-10-15). T5 Tinify deferred, T6 parked. |
 | Last updated | 2026-10-15 |
 | Decisions | [`docs/adr/`](docs/adr/README.md) (ADR-0001 to ADR-0028) |
 
