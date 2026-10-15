@@ -70,6 +70,7 @@ h1 {
   background: var(--panel);
   text-align: center;
   outline: none;
+  cursor: pointer;
   transition: border-color 0.15s, background 0.15s;
 }
 
@@ -140,11 +141,19 @@ select, input[type="number"] {
 
 #actions {
   display: flex;
+  align-items: center;
+  justify-content: space-between;
   gap: 10px;
   margin-bottom: 12px;
 }
 
 #actions[hidden] { display: none; }
+
+#actions .buttons {
+  display: flex;
+  gap: 10px;
+  margin-left: auto;
+}
 
 #actions button {
   padding: 8px 14px;
@@ -224,7 +233,10 @@ footer {
   padding-bottom: 24px;
   color: var(--muted);
   font-size: 0.8rem;
+  text-align: center;
 }
+
+footer a { color: var(--accent); }
 
 @media (max-width: 640px) {
   .row {

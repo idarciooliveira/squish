@@ -66,6 +66,11 @@ $("folder").addEventListener("change", (e) => {
 });
 
 const drop = $("drop");
+drop.addEventListener("click", (e) => {
+  // The buttons inside the drop zone handle their own clicks.
+  if (e.target.closest("button,input")) return;
+  $("files").click();
+});
 drop.addEventListener("keydown", (e) => {
   // Only the drop zone itself. The buttons inside it handle their own keys.
   if (e.target === drop && (e.key === "Enter" || e.key === " ")) {
