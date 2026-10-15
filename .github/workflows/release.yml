@@ -1,0 +1,98 @@
+name: Release
+
+# Tagged pushes produce downloadable binaries. PRs stay on ci.yml's
+# `test` + musl size-gate jobs only (NFR-7, phase4-ship.md T1).
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  publish:
+    name: publish (${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Native runners throughout, so every asset runs --help below
+          # with no qemu/Rosetta. musl stays the FROM scratch input (T2).
+          - os: ubuntu-24.04
+            target: x86_64-unknown-linux-musl
+          - os: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-musl
+          - os: macos-15-intel
+            target: x86_64-apple-darwin
+          - os: macos-14
+            target: aarch64-apple-darwin
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      # Installs the version and components pinned in rust-toolchain.toml.
+      - run: rustup toolchain install
+      - run: rustup target add ${{ matrix.target }}
+      # mozjpeg builds without nasm, just slower (ADR-0023), so install it
+      # everywhere the build scripts accept it.
+      - name: Install Linux deps
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y musl-tools nasm
+      - name: Install macOS deps
+        if: runner.os == 'macOS'
+        run: brew install nasm
+      - name: Install Windows deps
+        if: runner.os == 'Windows'
+        uses: ilammy/setup-nasm@72793074d3c8cdda771dba85f6deafe00623038b # v1
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
+      - run: cargo build --release -p squish --target ${{ matrix.target }}
+      - name: Stage asset
+        shell: bash
+        run: |
+          mkdir -p dist
+          exe=""
+          if [ "${{ runner.os }}" = "Windows" ]; then exe=".exe"; fi
+          cp "target/${{ matrix.target }}/release/squish${exe}" "dist/squish-${{ matrix.target }}${exe}"
+      - name: Smoke check (--help)
+        shell: bash
+        run: |
+          exe=""
+          if [ "${{ runner.os }}" = "Windows" ]; then exe=".exe"; fi
+          "dist/squish-${{ matrix.target }}${exe}" --help
+      # NFR-3 keeps applying per artifact; the gate stays on musl.
+      - name: Size gate (musl under 15 MB)
+        if: endsWith(matrix.target, 'unknown-linux-musl')
+        shell: bash
+        run: |
+          size=$(stat -c %s "dist/squish-${{ matrix.target }}")
+          echo "binary: $size bytes"
+          test "$size" -lt 15000000
+      - name: Upload asset artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: squish-${{ matrix.target }}
+          path: dist/squish-*
+          if-no-files-found: error
+
+  release:
+    name: release
+    needs: publish
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download asset artifacts
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: squish-*
+          merge-multiple: true
+          path: dist
+      - name: Attach assets to the tag release
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
+        with:
+          files: dist/squish-*
+          prerelease: ${{ contains(github.ref_name, '-rc') || contains(github.ref_name, '-alpha') || contains(github.ref_name, '-beta') }}
