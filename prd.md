@@ -359,7 +359,7 @@ These get answered by an ADR when we reach them.
 2. ~~Does jpegli beat mozjpeg enough to be worth its build cost?~~ No ([ADR-0023](docs/adr/0023-mozjpeg-confirmed-over-jpegli.md)).
 3. ~~What are the measured default quality values?~~ A per-file search ([ADR-0024](docs/adr/0024-per-file-quality-search-by-default.md)) with fast-ssim2 targets of 88.7 for JPEG and 90 for PNG as recalibrated in Phase 1 ([ADR-0026](docs/adr/0026-fast-ssim2-as-the-quality-metric.md)).
 4. ~~Does the AVIF trigger fire? (Phase 2)~~ No: checked 2026-10-14, no AVIF files in the corpus and none requested, so `avif.rs` stays unbuilt.
-5. Does the web version go public? (After Phase 3, [ADR-0014](docs/adr/0014-local-first-deployment.md))
+5. ~~Does the web version go public? (After Phase 3, [ADR-0014](docs/adr/0014-local-first-deployment.md))~~ No: decided 2026-10-15, stays local-first. No rate limiting is built speculatively.
 
 ## 13. Decision log
 
