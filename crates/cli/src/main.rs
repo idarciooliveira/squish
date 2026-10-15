@@ -32,7 +32,7 @@ const OUTPUT: &str = "Output (default writes name.min.ext next to the input)";
 #[command(
     name = "squish",
     version,
-    about = "Compress PNG and JPEG images, keeping their format",
+    about = "Compress PNG, JPEG and WebP images, keeping their format",
     after_help = "Run `squish serve --help` for the web UI."
 )]
 struct Cli {

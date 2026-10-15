@@ -8,6 +8,10 @@ A fast, local image compressor in the spirit of [TinyPNG](https://tinypng.com). 
 
 It's written in Rust and ships as a single binary with no runtime dependencies.
 
+<p align="center">
+  <img src="assets/web-ui.png" alt="squish web UI showing dropped images with savings, per-file Download buttons, and Download all">
+</p>
+
 > **Status:** the CLI and the web UI compress PNG, JPEG and WebP. Read the [PRD](prd.md) for the full plan and [`docs/adr/`](docs/adr/README.md) for the decisions behind it.
 
 ## Usage
