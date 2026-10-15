@@ -34,6 +34,7 @@ curl --data-binary @photo.png 'http://127.0.0.1:8080/api/compress?effort=fast' -
 ## Docker
 
 The image holds only the static musl binary (`FROM scratch`, nothing else inside).
+It is `linux/amd64` (the binary is `x86_64-unknown-linux-musl`).
 `squish serve` binds to localhost by default, so the image passes `--host 0.0.0.0` to publish the port ([ADR-0014](docs/adr/0014-local-first-deployment.md)):
 
 ```sh
