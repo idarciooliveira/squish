@@ -3,8 +3,8 @@
 | | |
 |---|---|
 | Owner | Idarcio Oliveira (@idarciooliveira) |
-| Status | Phase 1 done. Phase 2 in progress: the WebP codec is done and NFR-1 confirmed; the static build and the AVIF trigger check remain. Phase 3 (web version) built. |
-| Last updated | 2026-10-14 |
+| Status | Phase 1 done. Phase 2 done (WebP NFR-1 confirmed, static musl build, AVIF trigger did not fire). Phase 3 (web version) built. Phase 4 ship done for T1 release binaries, T2 Dockerfile and T3 fuzz; T4 public-web decision pending (owner). |
+| Last updated | 2026-10-15 |
 | Decisions | [`docs/adr/`](docs/adr/README.md) (ADR-0001 to ADR-0028) |
 
 ## 1. Summary
@@ -322,9 +322,9 @@ Status on 2026-10-13: the full flow works in Chromium with 50 mixed files (36 co
 
 ### Phase 4: ship and extras (open-ended)
 
-- [ ] GitHub Actions: release binaries for Linux, macOS and Windows. Fmt, clippy and tests already run on Linux for every push and PR (`.github/workflows/ci.yml`).
-- [ ] `Dockerfile` `FROM scratch` containing only the static binary
-- [ ] A fuzz target for `detect` and `compress` (NFR-6)
+- [x] GitHub Actions: release binaries for Linux, macOS and Windows on tags (PR #11). Fmt, clippy and tests already run on Linux for every push and PR (`.github/workflows/ci.yml`).
+- [x] `Dockerfile` `FROM scratch` containing only the static binary (PR #12)
+- [x] A fuzz target for `detect` and `compress` (NFR-6, PR #10)
 - [ ] Optional in-browser WASM mode
 - [ ] Optional resizing and format conversion
 - [ ] Tinify-compatible routes, only if a trigger in [ADR-0021](docs/adr/0021-tinify-compatible-api.md) fires
