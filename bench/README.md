@@ -17,6 +17,27 @@ Phase 0 corpus and results. Layout follows ADR-0020.
 3. Run the same set through TinyPNG once, save outputs into `bench/tinypng/` with identical names.
 4. Expected count: ~50.
 
+## CLI speed (Phase 3+)
+
+`scripts/cli-speed.sh` times the release CLI on a folder and optionally
+compares it with the TinyPNG API on a small sample. The full corpus is never
+sent to TinyPNG by default: that would cost one API credit per file and take
+very long over sequential roundtrips.
+
+```sh
+bench/scripts/cli-speed.sh [--tinypng-sample N] [--jobs N] [--no-build] [DIR]
+```
+
+- `DIR` defaults to `bench/images`.
+- Without flags it runs squish at default effort and at `--effort fast`,
+  printing a Markdown table plus machine facts (CPU, threads, squish version).
+- `--tinypng-sample N` also roundtrips the N smallest files through
+  `api.tinify.com` (shrink POST + result download, +1 s pause between files,
+  needs `TINIFY_API_KEY`). Keep N small: ~5 files take ~30 s.
+- The numbers in the top-level README's Benchmark section came from
+  `./bench/scripts/cli-speed.sh --tinypng-sample 5` on a 5-file subset plus
+  `./bench/scripts/cli-speed.sh` on all of `bench/images`.
+
 ## Calibration curves (Phase 1)
 
 `spike/src/bin/curves.rs` encodes every file over a grid of settings and scores each result with dssim and the candidate metrics at several scales, timing every step. `scripts/analyse-curves.py` reads the CSV and prints the fixed-target tests, metric calibration and search-cost estimates behind ADR-0025 and ADR-0026.

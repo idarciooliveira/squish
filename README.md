@@ -35,6 +35,26 @@ curl --data-binary @photo.png 'http://127.0.0.1:8080/api/compress?effort=fast' -
 
 `squish --help` lists every flag. [ADR-0019](docs/adr/0019-cli-design.md) has the rules for which files a folder walk picks up, where outputs go and what the exit codes mean.
 
+## Benchmark
+
+Same 5 files (1.8 MB mixed PNG/JPEG) through both tools, timed with `bench/scripts/cli-speed.sh` on 2026-10-15 (i5-1335U, 12 threads, squish 0.1.0):
+
+| Tool | Output | Wall time |
+|---|---|---|
+| squish (default effort) | 0.7 MB (-61%) | 0.8 s |
+| squish (`--effort fast`) | 0.8 MB (-55%) | 0.2 s |
+| TinyPNG API (upload + server + download, sequential) | 0.8 MB | ~33 s |
+
+That is ~40x faster at default effort (~200x with `--effort fast`) on identical inputs. The TinyPNG leg is the public API (`shrink` POST + result download per file, +1 s pause between files, same as `bench/scripts/tinypng-baseline.sh`); it includes network and server-side queueing, so it varies with connection and load.
+
+Full local corpus for scale: 77 files, 65.5 MB -> 24.0 MB (-63%) in ~23 s at default effort, ~6 s with `--effort fast` (30.3 MB out). No full-corpus TinyPNG timing — that would be 77 sequential API roundtrips; the 5-file sample above is the head-to-head.
+
+Quality parity is tracked separately by the NFR-1 harness (`bench/harness`), not by this stopwatch. Reproduce locally (TinyPNG needs `TINIFY_API_KEY`, one API credit per sampled file, so keep N small):
+
+```sh
+bench/scripts/cli-speed.sh --tinypng-sample 5 bench/images
+```
+
 ## Docker
 
 The image holds only the static musl binary (`FROM scratch`, nothing else inside).
