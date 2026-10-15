@@ -34,6 +34,8 @@ jobs:
             target: x86_64-pc-windows-msvc
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
       # Installs the version and components pinned in rust-toolchain.toml.
       - run: rustup toolchain install
       - run: rustup target add ${{ matrix.target }}
@@ -71,7 +73,25 @@ jobs:
           size=$(stat -c %s "dist/squish-${{ matrix.target }}")
           echo "binary: $size bytes"
           test "$size" -lt 15000000
-      - name: Attach asset to the tag release
+      - name: Upload asset artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: squish-${{ matrix.target }}
+          path: dist/squish-*
+          if-no-files-found: error
+
+  release:
+    name: release
+    needs: publish
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download asset artifacts
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: squish-*
+          merge-multiple: true
+          path: dist
+      - name: Attach assets to the tag release
         uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
         with:
           files: dist/squish-*
