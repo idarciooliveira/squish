@@ -27,6 +27,19 @@ jobs:
       # bench/images/ is gitignored, so golden.rs skips here and the fixtures carry the run (ADR-0020).
       - run: cargo test --workspace
 
+  fuzz-corpus:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: rustup toolchain install nightly --profile minimal
+      - run: sudo apt-get install -y nasm
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo install cargo-fuzz --locked
+      # Fails when the fuzz target no longer builds, or when a committed
+      # seed crashes: the corpus dir seeds the run before any mutations.
+      - run: cargo +nightly fuzz build
+      - run: cargo +nightly fuzz run fuzz_compress fuzz/corpus/fuzz_compress -- -runs=100 -max_total_time=60
+
   release:
     runs-on: ubuntu-latest
     steps:
